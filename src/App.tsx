@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.15 - Auth & Lint Fixes');
+console.log('🚀 SYSTEM UPDATE: Version 5.16 - Auth Bypass for Open Rules');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
