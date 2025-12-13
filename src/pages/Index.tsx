@@ -72,16 +72,26 @@ const Index = () => {
   // CMS State
   const [pages, setPages] = useState<{ [key: string]: { title: string, content: string } }>({});
 
+  // Price State
+  const [prices, setPrices] = useState({ weekly: 99, monthly: 299 });
+
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const docRef = doc(db, 'content', 'pages');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setPages(docSnap.data() as any);
+        // Fetch CMS Content
+        const cmsDoc = await getDoc(doc(db, 'content', 'pages'));
+        if (cmsDoc.exists()) {
+          setPages(cmsDoc.data() as any);
         }
+
+        // Fetch Prices (Added)
+        const priceDoc = await getDoc(doc(db, 'config', 'prices'));
+        if (priceDoc.exists()) {
+          setPrices(priceDoc.data() as any);
+        }
+
       } catch (error) {
-        console.error("Error fetching content:", error);
+        console.error("Error fetching content/prices:", error);
       }
     };
     fetchContent();
@@ -227,12 +237,12 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <PricingCard
               plan="weekly"
-              price={99}
+              price={prices.weekly || 99}
               features={weeklyFeatures}
             />
             <PricingCard
               plan="monthly"
-              price={299}
+              price={prices.monthly || 299}
               features={monthlyFeatures}
               popular
             />
