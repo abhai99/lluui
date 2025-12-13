@@ -146,7 +146,7 @@ export const initiateCashfreePayment = async (
 
     const result = await cashfree.checkout({
       paymentSessionId: cleanSessionId,
-      redirectTarget: '_modal',
+      redirectTarget: '_self',
     });
 
     if (result.error) {

@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.6 - Force Build Fix');
+console.log('🚀 SYSTEM UPDATE: Version 5.7 - Redirect Mode (No Iframe)');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
