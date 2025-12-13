@@ -40,8 +40,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         const amount = plan === 'weekly' ? 99 : 299;
 
-        // Handle origin: req.headers.origin or fallback
-        const origin = req.headers.origin || 'http://localhost:8080';
+        // Cashfree Prod requires HTTPS for return_url
+        // If testing on localhost, redirect to the production Vercel app
+        let origin = req.headers.origin || 'https://lluui.vercel.app';
+        if (origin.includes('localhost') || origin.startsWith('http://')) {
+            origin = 'https://lluui.vercel.app';
+        }
+
         const returnUrl = `${origin}/payment-success?order_id=${orderId}`;
 
         const payload = {
