@@ -83,13 +83,14 @@ const createOrder = async (
         plan,
         customerName,
         customerEmail,
+        customerPhone: '9999999999', // Ensure phone is sent
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('Order creation failed:', error);
-      throw new Error(error.message || 'Failed to create order');
+      console.error('Order creation failed:', JSON.stringify(error));
+      throw new Error(error.error || error.message || 'Failed to create order');
     }
 
     const data = await response.json();

@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.2 - Backend Node Fix');
+console.log('🚀 SYSTEM UPDATE: Version 5.3 - Payload + Error Logs');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
