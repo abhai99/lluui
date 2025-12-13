@@ -15,18 +15,53 @@ const PaymentSuccess = () => {
     const orderId = searchParams.get('order_id');
 
     useEffect(() => {
-        // Simulate payment verification
-        const timer = setTimeout(() => {
-            if (orderId) {
-                setStatus('success');
-                // Activate subscription
-                const expiresAt = new Date();
-                expiresAt.setDate(expiresAt.getDate() + 30);
-                setSubscription({ isSubscribed: true, plan: 'monthly', expiresAt });
-            } else {
+        const verifyPayment = async () => {
+            if (!orderId) {
+                setStatus('failed');
+                return;
+            }
+
+            try {
+                // Call our secure verification API
+                const response = await fetch('/api/verify-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.isPaid) {
+                    setStatus('success');
+
+                    // Activate subscription based on REAL plan from backend
+                    const expiresAt = new Date();
+                    // data.plan is guaranteed to be 'weekly' or 'monthly' by backend
+                    if (data.plan === 'weekly') {
+                        expiresAt.setDate(expiresAt.getDate() + 7);
+                    } else {
+                        expiresAt.setDate(expiresAt.getDate() + 30);
+                    }
+
+                    setSubscription({
+                        isSubscribed: true,
+                        plan: data.plan, // 'weekly' or 'monthly'
+                        expiresAt,
+                    });
+                } else {
+                    setStatus('failed');
+                    console.error('Payment Verification Failed:', data);
+                }
+            } catch (error) {
+                console.error('Verification Error:', error);
                 setStatus('failed');
             }
-        }, 1500);
+        };
+
+        // Add a small delay for better UX (and to ensure Cashfree has processed it)
+        const timer = setTimeout(() => {
+            verifyPayment();
+        }, 2000);
 
         return () => clearTimeout(timer);
     }, [orderId, setSubscription]);
