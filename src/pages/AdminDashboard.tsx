@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from 'sonner';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { signInAnonymously } from "firebase/auth";
 
 export const AdminDashboard = () => {
     const [prices, setPrices] = useState({
@@ -123,19 +124,44 @@ export const AdminDashboard = () => {
                         <Lock className="w-12 h-12 mx-auto text-primary mb-4" />
                         <h1 className="text-2xl font-bold">Admin Access</h1>
                     </div>
-                    <Input
-                        type="password"
-                        placeholder="Enter Admin Password"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                    />
-                    <Button className="w-full" onClick={() => {
-                        if (adminPassword === 'admin123') { // Simple password for now
-                            setIsAuthenticated(true);
+
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (adminPassword === 'admin123') {
+                            setIsLoading(true);
+                            try {
+                                // Real Firebase Auth (Required for Firestore Access)
+                                await signInAnonymously(auth);
+                                setIsAuthenticated(true);
+                                toast.success('Welcome Admin');
+                            } catch (error: any) {
+                                console.error("Auth Error:", error);
+                                // Fallback: If anonymous fails (not enabled in console), stick to local state
+                                // but warn user they might see data errors.
+                                if (error.code === 'auth/operation-not-allowed') {
+                                    toast.warning('Enable "Anonymous Auth" in Firebase Console for best results.');
+                                    setIsAuthenticated(true); // Let them in anyway to try
+                                } else {
+                                    toast.error('Login Failed: ' + error.message);
+                                }
+                            } finally {
+                                setIsLoading(false);
+                            }
                         } else {
                             toast.error('Invalid Password');
                         }
-                    }}>Login</Button>
+                    }} className="space-y-4">
+                        <Input
+                            type="password"
+                            placeholder="Enter Admin Password"
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                            disabled={isLoading}
+                        />
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Authenticating...' : 'Login'}
+                        </Button>
+                    </form>
                 </Card>
             </div>
         );
