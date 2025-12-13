@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.23 - Full Width Content UI');
+console.log('🚀 SYSTEM UPDATE: Version 5.25 - Date Fix & JS Execution');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (

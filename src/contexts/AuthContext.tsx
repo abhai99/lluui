@@ -49,8 +49,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (userDocSnap.exists()) {
             const data = userDocSnap.data();
-            // Check if expiry date is valid
-            const expiresAt = data.subscription?.expiresAt ? new Date(data.subscription.expiresAt.seconds * 1000) : null;
+
+            // Parse expiry date (Handle both Firestore Timestamp and ISO String)
+            let expiresAt = null;
+            const subData = data.subscription;
+
+            if (subData?.expiresAt) {
+              if (typeof subData.expiresAt === 'string') {
+                expiresAt = new Date(subData.expiresAt);
+              } else if (subData.expiresAt.seconds) {
+                // Firestore Timestamp
+                expiresAt = new Date(subData.expiresAt.seconds * 1000);
+              }
+            }
+
             const isValid = expiresAt ? expiresAt > new Date() : false;
 
             setSubscription({
