@@ -35,33 +35,34 @@ const initCashfree = async (): Promise<CashfreeInstance | null> => {
   if (cashfreeInstance) return cashfreeInstance;
 
   try {
-    console.log('Initializing Cashfree SDK (CDN Version)...');
+    console.log('Initializing Cashfree SDK (CDN Version 3.0)...');
 
     // Check if script is loaded
     if (typeof window !== 'undefined' && window.Cashfree) {
-      // NOTE: Using 'production' mode strictly as per your setup
-      cashfreeInstance = await window.Cashfree.load({ mode: 'production' });
+      // v3 SDK usage is usually: new Cashfree({ mode: '...' })
+      // The user's snippet using .load() might be for the wrapper library
+
+      // @ts-ignore
+      cashfreeInstance = new window.Cashfree({ mode: 'production' });
+
       console.log('Cashfree SDK initialized (Production Mode)');
       return cashfreeInstance;
     } else {
       console.error('Cashfree SDK script not loaded in window');
-      // Fallback: Try to load it dynamically if missing
-      return new Promise((resolve) => {
-        const script = document.createElement('script');
-        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-        script.onload = async () => {
-          if (window.Cashfree) {
-            cashfreeInstance = await window.Cashfree.load({ mode: 'production' });
-            resolve(cashfreeInstance);
-          } else {
-            resolve(null);
-          }
-        };
-        document.body.appendChild(script);
-      });
+      return null;
     }
   } catch (error) {
     console.error('Failed to initialize Cashfree:', error);
+    // Fallback: try factory function style just in case
+    try {
+      if (typeof window !== 'undefined' && window.Cashfree) {
+        // @ts-ignore
+        cashfreeInstance = window.Cashfree({ mode: 'production' });
+        return cashfreeInstance;
+      }
+    } catch (e2) {
+      console.error('Fallback init failed:', e2);
+    }
   }
   return null;
 };
