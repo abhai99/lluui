@@ -52,9 +52,15 @@ export default async function handler(request: Request): Promise<Response> {
         const secretKey = process.env.CASHFREE_SECRET_KEY;
 
         // Use sandbox or production URL
-        const apiUrl = process.env.CASHFREE_ENV === 'production'
+        const env = process.env.CASHFREE_ENV || 'sandbox';
+        const apiUrl = env === 'production'
             ? 'https://api.cashfree.com/pg/orders'
             : 'https://sandbox.cashfree.com/pg/orders';
+
+        console.log(`Using Cashfree Environment: ${env}`);
+        console.log(`Cashfree API URL: ${apiUrl}`);
+        console.log(`App ID: ${appId}`);
+        console.log(`Secret Key set: ${!!secretKey}`); // Don't log the actual key
 
         if (!secretKey) {
             // Return error if secret key is not configured
