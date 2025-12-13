@@ -11,8 +11,10 @@ import {
   Clock,
   Users,
   ArrowRight,
-  Star
+  Star,
+  Lock
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -193,20 +195,29 @@ const Index = () => {
                     className={`w-full h-24 text-lg font-bold shadow-lg transition-all hover:scale-105 ${isActive ? 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90' : 'opacity-80'
                       }`}
                     onClick={() => {
+                      if (!subscription.isSubscribed) {
+                        // Scroll to pricing if not subscribed
+                        toast.info("Please subscribe to access this content.");
+                        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                        return;
+                      }
+
                       if (isActive) {
                         window.open(`/content/${num}`, '_self'); // Or navigate using hook
                       } else {
-                        // Using standard alert or toast if available in scope, assuming toast imported or just alert for now to be safe,
-                        // actually we can use the Sonner toast we have in App
-                        // check imports... I will add imports in a sec.
-                        alert('Coming Soon! Stay tuned.');
+                        toast.info('Coming Soon! Stay tuned.');
                       }
                     }}
                   >
                     {isActive ? (
                       <div className="flex flex-col items-center gap-1">
-                        <span>{title}</span>
-                        <span className="text-xs font-normal opacity-80">Click to Access</span>
+                        <div className="flex items-center gap-2">
+                          <span>{title}</span>
+                          {!subscription.isSubscribed && <Lock className="w-3 h-3 text-white/70" />}
+                        </div>
+                        <span className="text-xs font-normal opacity-80">
+                          {subscription.isSubscribed ? 'Click to Access' : 'Subscribe to Unlock'}
+                        </span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-1">

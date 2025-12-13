@@ -38,7 +38,12 @@ export default async function handler(req: any, res: any) {
             : 'https://sandbox.cashfree.com/pg/orders';
 
         const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        const amount = plan === 'weekly' ? 99 : 299;
+
+        // Use provided amount if valid, otherwise fallback to defaults
+        let amount = req.body.amount;
+        if (!amount || amount <= 0) {
+            amount = plan === 'weekly' ? 99 : 299;
+        }
 
         // Cashfree Prod requires HTTPS for return_url
         // If testing on localhost, redirect to the production Vercel app

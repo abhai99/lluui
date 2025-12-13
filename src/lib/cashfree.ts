@@ -70,6 +70,7 @@ const initCashfree = async (): Promise<CashfreeInstance | null> => {
 // Create order via backend API
 const createOrder = async (
   plan: 'weekly' | 'monthly',
+  amount: number,
   customerName: string,
   customerEmail: string
 ): Promise<{ orderId: string; paymentSessionId: string } | null> => {
@@ -81,6 +82,7 @@ const createOrder = async (
       },
       body: JSON.stringify({
         plan,
+        amount,
         customerName,
         customerEmail,
         customerPhone: '9999999999', // Ensure phone is sent
@@ -112,6 +114,7 @@ const createOrder = async (
 // Initiate payment
 export const initiateCashfreePayment = async (
   plan: 'weekly' | 'monthly',
+  amount: number,
   customerName: string,
   customerEmail: string,
   onSuccess: (orderId: string, plan: 'weekly' | 'monthly') => void,
@@ -127,7 +130,7 @@ export const initiateCashfreePayment = async (
     }
 
     // Create order via backend
-    const order = await createOrder(plan, customerName, customerEmail);
+    const order = await createOrder(plan, amount, customerName, customerEmail);
 
     if (!order) {
       onFailure('Failed to create order. Please try again.');

@@ -45,6 +45,7 @@ export const PricingCard = ({ plan, price, features, popular }: PricingCardProps
     try {
       await initiateCashfreePayment(
         plan,
+        price,
         user.displayName || 'Customer',
         user.email || '',
         // On Success

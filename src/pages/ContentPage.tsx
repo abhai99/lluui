@@ -54,18 +54,21 @@ const ContentPage = () => {
 
     return (
         <div className="min-h-screen gradient-hero">
-            <Navbar />
-            <div className="pt-24 px-4 pb-12 container mx-auto">
-                <Button variant="ghost" onClick={() => navigate('/')} className="mb-6">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+            <Navbar /> {/* Existing Navbar handles mobile menu */}
+
+            <div className="pt-24 px-4 pb-12 w-full max-w-7xl mx-auto">
+                <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 hover:bg-white/10">
+                    <ArrowLeft className="w-5 h-5" />
                     Back to Home
                 </Button>
 
                 {/* Render HTML Content Securely */}
-                <div
-                    className="prose prose-invert max-w-none bg-card p-8 rounded-2xl shadow-elevated border border-border"
-                    dangerouslySetInnerHTML={{ __html: content }}
-                />
+                <div className="w-full bg-card/50 backdrop-blur-md p-6 md:p-10 rounded-3xl shadow-2xl border border-white/10">
+                    <div
+                        className="prose prose-invert prose-lg max-w-none w-full"
+                        dangerouslySetInnerHTML={{ __html: content }}
+                    />
+                </div>
             </div>
         </div>
     );
