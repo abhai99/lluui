@@ -13,10 +13,10 @@ import {
   ArrowRight,
   Star,
   Lock,
-  Zap,
   Brain,
   Moon
 } from 'lucide-react';
+import { defaultPages } from '@/lib/defaultContent';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
@@ -241,10 +241,12 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {[1, 2, 3, 4, 5].map((num) => {
               const key = `page${num}`;
-              const pageData = pages[key as keyof typeof pages];
-              // Logic: If title exists AND content exists -> Active. Else -> Coming Soon.
-              const isActive = pageData?.title && pageData?.content;
-              const title = pageData?.title || 'Coming Soon';
+              // Fallback Logic:
+              const pageData = pages[key as keyof typeof pages] || defaultPages[key as keyof typeof defaultPages];
+
+              // Logic: If title exists AND content exists -> Active.
+              const isActive = !!(pageData?.title && pageData?.content);
+              const title = pageData?.title || `Tool ${num}`;
 
               return (
                 <div key={num} className="animate-fade-in">

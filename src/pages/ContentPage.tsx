@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { defaultPages } from '@/lib/defaultContent';
 
 const ContentPage = () => {
     const { id } = useParams();
@@ -16,17 +17,38 @@ const ContentPage = () => {
     useEffect(() => {
         const fetchContent = async () => {
             try {
+                // 1. Try fetching from Firestore
                 const docRef = doc(db, 'content', 'pages');
                 const docSnap = await getDoc(docRef);
+                let foundContent = null;
+                let foundTitle = null;
 
                 if (docSnap.exists() && id) {
                     const data = docSnap.data();
                     const pageKey = `page${id}`;
                     if (data[pageKey]) {
-                        setContent(data[pageKey].content);
-                        setTitle(data[pageKey].title);
+                        foundContent = data[pageKey].content;
+                        foundTitle = data[pageKey].title;
                     }
                 }
+
+                // 2. Fallback to Default Content if not in Firestore
+                if (!foundContent && id) {
+                    const pageKey = `page${id}`; // e.g. "page1"
+                    // Use type assertion to access the object securely
+                    const defaultPage = defaultPages[pageKey as keyof typeof defaultPages];
+                    if (defaultPage) {
+                        foundContent = defaultPage.content;
+                        foundTitle = defaultPage.title;
+                        console.log(`Loaded default content for ${pageKey}`);
+                    }
+                }
+
+                if (foundContent) {
+                    setContent(foundContent);
+                    setTitle(foundTitle);
+                }
+
             } catch (error) {
                 console.error("Error fetching content:", error);
             } finally {
@@ -35,6 +57,34 @@ const ContentPage = () => {
         };
         fetchContent();
     }, [id]);
+
+    // Execute scripts found in the content
+    useEffect(() => {
+        if (!content) return;
+
+        // Find the container
+        const container = document.getElementById('content-container');
+        if (!container) return;
+
+        // Find all script tags
+        const scripts = container.getElementsByTagName('script');
+
+        Array.from(scripts).forEach(script => {
+            const newScript = document.createElement('script');
+            Array.from(script.attributes).forEach(attr => {
+                newScript.setAttribute(attr.name, attr.value);
+            });
+
+            if (script.innerHTML) {
+                newScript.innerHTML = script.innerHTML;
+            } else if (script.src) {
+                newScript.src = script.src;
+            }
+
+            // Execute
+            script.parentNode?.replaceChild(newScript, script);
+        });
+    }, [content]);
 
     if (loading) {
         return (
@@ -68,6 +118,7 @@ const ContentPage = () => {
             <div className="flex-1 w-full max-w-md mx-auto md:max-w-4xl"> {/* Centered on desktop, full on mobile */}
                 <div className="w-full h-full p-2 md:p-6">
                     <div
+                        id="content-container"
                         className="prose prose-invert prose-lg max-w-none w-full
                                    [&>div]:w-full [&>div]:max-w-none [&_iframe]:w-full [&_iframe]:aspect-video"
                         dangerouslySetInnerHTML={{ __html: content }}
