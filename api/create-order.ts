@@ -92,6 +92,11 @@ export default async function handler(request: Request) {
 
         const data = await response.json();
 
+        // 🔍 Debug - Check the actual value
+        console.log('=== BACKEND DEBUG ===');
+        console.log('Original Session ID:', data.payment_session_id);
+        console.log('Ends with "payment"?:', data.payment_session_id?.endsWith('payment'));
+
         if (!response.ok) {
             console.error('Cashfree API Error:', data);
             return new Response(

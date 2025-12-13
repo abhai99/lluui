@@ -92,6 +92,11 @@ const createOrder = async (
     }
 
     const data = await response.json();
+
+    // 🔍 Debug - Check the actual value
+    console.log('=== FRONTEND DEBUG ===');
+    console.log('Received Session ID:', data.paymentSessionId);
+
     return {
       orderId: data.orderId,
       paymentSessionId: data.paymentSessionId,
