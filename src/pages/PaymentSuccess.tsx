@@ -10,7 +10,7 @@ import { doc, setDoc } from 'firebase/firestore';
 const PaymentSuccess = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { setSubscription, user } = useAuth();
+    const { setSubscription, user, loading } = useAuth();
     const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
     const [countdown, setCountdown] = useState(5);
 
@@ -18,6 +18,9 @@ const PaymentSuccess = () => {
 
     useEffect(() => {
         const verifyPayment = async () => {
+            // 1. Wait for Auth to Initialize
+            if (loading) return;
+
             if (!orderId) {
                 setStatus('failed');
                 return;
@@ -49,6 +52,7 @@ const PaymentSuccess = () => {
                     // Save to Firestore for persistent tracking
                     if (user) {
                         try {
+                            console.log("Saving subscription for user:", user.uid);
                             await setDoc(doc(db, 'users', user.uid), {
                                 email: user.email,
                                 displayName: user.displayName || 'User',
@@ -64,9 +68,12 @@ const PaymentSuccess = () => {
                                 },
                                 lastUpdated: new Date().toISOString()
                             }, { merge: true });
+                            console.log("Subscription saved successfully!");
                         } catch (err) {
                             console.error("Error saving to Firestore:", err);
                         }
+                    } else {
+                        console.error("User not found during save! Auth state:", { loading, user });
                     }
 
                     setSubscription({
@@ -84,13 +91,8 @@ const PaymentSuccess = () => {
             }
         };
 
-        // Add a small delay for better UX (and to ensure Cashfree has processed it)
-        const timer = setTimeout(() => {
-            verifyPayment();
-        }, 2000);
-
-        return () => clearTimeout(timer);
-    }, [orderId, setSubscription]);
+        verifyPayment();
+    }, [orderId, setSubscription, user, loading]);
 
     // Countdown Timer
     useEffect(() => {

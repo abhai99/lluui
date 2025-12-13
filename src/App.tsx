@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { BottomNav } from "./components/BottomNav";
 import Index from "./pages/Index";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { AdminDashboard } from "./pages/AdminDashboard";
@@ -12,7 +13,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.20 - User Auto-Save on Login');
+console.log('🚀 SYSTEM UPDATE: Version 5.23 - Full Width Content UI');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/content/:id" element={<ContentPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <BottomNav />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
