@@ -12,6 +12,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+console.log('🚀 SYSTEM UPDATE: Version 5.0 - CDN Fix + Validation');
+console.log('Build Timestamp:', new Date().toISOString());
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
