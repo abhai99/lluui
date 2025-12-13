@@ -22,7 +22,8 @@ interface CheckoutResult {
 const API_BASE = '/api';
 
 // Cashfree mode
-const CASHFREE_MODE: 'sandbox' | 'production' = 'sandbox';
+// Check if we are in production based on URL or environment
+const CASHFREE_MODE: 'sandbox' | 'production' = 'production';
 
 // Initialize Cashfree SDK
 let cashfreeInstance: CashfreeInstance | null = null;

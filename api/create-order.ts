@@ -1,9 +1,10 @@
 // Cashfree Create Order API
 // POST /api/create-order
-// Creates a payment session with Cashfree
+import { Cashfree } from "cashfree-pg";
 
+// Switch to Node.js runtime for SDK compatibility
 export const config = {
-    runtime: 'edge',
+    maxDuration: 10,
 };
 
 interface OrderRequest {
@@ -13,19 +14,10 @@ interface OrderRequest {
     customerPhone?: string;
 }
 
-interface CashfreeOrderResponse {
-    cf_order_id: string;
-    order_id: string;
-    payment_session_id: string;
-    order_status: string;
-}
-
-export default async function handler(request: Request): Promise<Response> {
-    // Only allow POST requests
+export default async function handler(request: Request) {
     if (request.method !== 'POST') {
         return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-            status: 405,
-            headers: { 'Content-Type': 'application/json' },
+            status: 405, headers: { 'Content-Type': 'application/json' }
         });
     }
 
@@ -41,78 +33,60 @@ export default async function handler(request: Request): Promise<Response> {
             );
         }
 
-        // Calculate amount based on plan
-        const amount = plan === 'weekly' ? 99 : 299;
-
-        // Generate unique order ID
-        const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-        // Cashfree API credentials from environment variables
-        const appId = process.env.CASHFREE_APP_ID || '80890d10637137583d840feb209808';
+        // Credentials
+        const appId = process.env.CASHFREE_APP_ID;
         const secretKey = process.env.CASHFREE_SECRET_KEY;
-
-        // Use sandbox or production URL
         const env = process.env.CASHFREE_ENV || 'sandbox';
-        const apiUrl = env === 'production'
-            ? 'https://api.cashfree.com/pg/orders'
-            : 'https://sandbox.cashfree.com/pg/orders';
 
-        console.log(`Using Cashfree Environment: ${env}`);
-        console.log(`Cashfree API URL: ${apiUrl}`);
-        console.log(`App ID: ${appId}`);
-        console.log(`Secret Key set: ${!!secretKey}`); // Don't log the actual key
-
-        if (!secretKey) {
-            // Return error if secret key is not configured
+        if (!appId || !secretKey) {
             return new Response(
-                JSON.stringify({
-                    error: 'Payment configuration error',
-                    message: 'CASHFREE_SECRET_KEY environment variable is not set'
-                }),
+                JSON.stringify({ error: 'Server configuration error: Missing credentials' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // Create order with Cashfree
-        const cashfreeResponse = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-client-id': appId,
-                'x-client-secret': secretKey,
-                'x-api-version': '2023-08-01',
+        // Initialize Cashfree SDK (v5+ syntax)
+        // User doc: var cashfree = new Cashfree(Cashfree.SANDBOX, "<x-client-id>", "<x-client-secret>")
+
+        // Use 'any' cast to access static properties if TypeScript definitions are missing/outdated
+        const CF = Cashfree as any;
+        const cashfreeEnv = env === 'production' ? CF.PRODUCTION : CF.SANDBOX;
+
+        // Instantiate Cashfree SDK
+        // @ts-ignore
+        const cashfreeInstance = new Cashfree(cashfreeEnv, appId, secretKey);
+
+        // Generate Order ID
+        const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const amount = plan === 'weekly' ? 99 : 299;
+        const returnUrl = `${request.headers.get('origin') || 'http://localhost:8080'}/payment-success?order_id=${orderId}`;
+
+        const orderRequest = {
+            order_amount: amount,
+            order_currency: "INR",
+            order_id: orderId,
+            customer_details: {
+                customer_id: customerEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+                customer_name: customerName,
+                customer_email: customerEmail,
+                customer_phone: customerPhone || '9999999999'
             },
-            body: JSON.stringify({
-                order_id: orderId,
-                order_amount: amount,
-                order_currency: 'INR',
-                customer_details: {
-                    customer_id: customerEmail.replace(/[^a-zA-Z0-9]/g, '_'),
-                    customer_name: customerName,
-                    customer_email: customerEmail,
-                    customer_phone: customerPhone || '9999999999',
-                },
-                order_meta: {
-                    return_url: `${request.headers.get('origin') || 'http://localhost:8080'}/payment-success?order_id=${orderId}`,
-                    notify_url: `${request.headers.get('origin') || 'http://localhost:8080'}/api/payment-webhook`,
-                    payment_methods: 'upi',
-                },
-                order_note: `${plan} subscription - WingoBoss`,
-            }),
-        });
+            order_meta: {
+                return_url: returnUrl,
+                payment_methods: "cc,dc,ccc,ppc,nb,upi,paypal,emi" // Enable all methods or restricted list
+            },
+            order_note: `${plan} subscription`
+        };
 
-        if (!cashfreeResponse.ok) {
-            const errorData = await cashfreeResponse.text();
-            console.error('Cashfree API error:', errorData);
-            return new Response(
-                JSON.stringify({ error: 'Failed to create order', details: errorData }),
-                { status: 500, headers: { 'Content-Type': 'application/json' } }
-            );
-        }
+        console.log(`Creating Order ${orderId} in ${env} mode...`);
 
-        const orderData: CashfreeOrderResponse = await cashfreeResponse.json();
+        // Create Order
+        // v5 call signature: PGCreateOrder(request) - No version string argument
+        const response = await cashfreeInstance.PGCreateOrder(orderRequest);
 
-        // Return the payment session ID to the frontend
+        const orderData = response.data;
+        console.log('Order created successfully:', orderData.cf_order_id);
+
         return new Response(
             JSON.stringify({
                 success: true,
@@ -122,10 +96,14 @@ export default async function handler(request: Request): Promise<Response> {
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
-    } catch (error) {
-        console.error('Order creation error:', error);
+
+    } catch (error: any) {
+        console.error('Order Creation Error:', error.response?.data?.message || error.message);
         return new Response(
-            JSON.stringify({ error: 'Internal server error' }),
+            JSON.stringify({
+                error: 'Failed to create order',
+                details: error.response?.data?.message || error.message
+            }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
