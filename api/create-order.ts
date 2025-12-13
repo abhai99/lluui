@@ -1,8 +1,7 @@
 // Cashfree Create Order API
 // POST /api/create-order
-import { Cashfree } from "cashfree-pg";
+// Uses direct fetch instead of SDK for max performance on Vercel
 
-// Switch to Node.js runtime for SDK compatibility
 export const config = {
     maxDuration: 10,
 };
@@ -25,46 +24,31 @@ export default async function handler(request: Request) {
         const body: OrderRequest = await request.json();
         const { plan, customerName, customerEmail, customerPhone } = body;
 
-        // Validate request
-        if (!plan || !customerName || !customerEmail) {
-            return new Response(
-                JSON.stringify({ error: 'Missing required fields' }),
-                { status: 400, headers: { 'Content-Type': 'application/json' } }
-            );
-        }
-
-        // Credentials
+        // Configuration
         const appId = process.env.CASHFREE_APP_ID;
         const secretKey = process.env.CASHFREE_SECRET_KEY;
         const env = process.env.CASHFREE_ENV || 'sandbox';
 
         if (!appId || !secretKey) {
             return new Response(
-                JSON.stringify({ error: 'Server configuration error: Missing credentials' }),
+                JSON.stringify({ error: 'Server configuration error' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // Initialize Cashfree SDK (v5+ syntax)
-        // User doc: var cashfree = new Cashfree(Cashfree.SANDBOX, "<x-client-id>", "<x-client-secret>")
+        const baseUrl = env === 'production'
+            ? 'https://api.cashfree.com/pg/orders'
+            : 'https://sandbox.cashfree.com/pg/orders';
 
-        // Use 'any' cast to access static properties if TypeScript definitions are missing/outdated
-        const CF = Cashfree as any;
-        const cashfreeEnv = env === 'production' ? CF.PRODUCTION : CF.SANDBOX;
-
-        // Instantiate Cashfree SDK
-        // @ts-ignore
-        const cashfreeInstance = new Cashfree(cashfreeEnv, appId, secretKey);
-
-        // Generate Order ID
         const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         const amount = plan === 'weekly' ? 99 : 299;
         const returnUrl = `${request.headers.get('origin') || 'http://localhost:8080'}/payment-success?order_id=${orderId}`;
 
-        const orderRequest = {
+        // Prepare request payload
+        const payload = {
+            order_id: orderId,
             order_amount: amount,
             order_currency: "INR",
-            order_id: orderId,
             customer_details: {
                 customer_id: customerEmail.replace(/[^a-zA-Z0-9]/g, '_'),
                 customer_name: customerName,
@@ -73,37 +57,49 @@ export default async function handler(request: Request) {
             },
             order_meta: {
                 return_url: returnUrl,
-                payment_methods: "cc,dc,ccc,ppc,nb,upi,paypal,emi" // Enable all methods or restricted list
+                payment_methods: "cc,dc,ccc,ppc,nb,upi,paypal,emi"
             },
             order_note: `${plan} subscription`
         };
 
-        console.log(`Creating Order ${orderId} in ${env} mode...`);
+        console.log(`Sending Order Request to ${baseUrl}`);
 
-        // Create Order
-        // v5 call signature: PGCreateOrder(request) - No version string argument
-        const response = await cashfreeInstance.PGCreateOrder(orderRequest);
+        // Direct Fetch Call
+        const response = await fetch(baseUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': appId,
+                'x-client-secret': secretKey
+            },
+            body: JSON.stringify(payload)
+        });
 
-        const orderData = response.data;
-        console.log('Order created successfully:', orderData.cf_order_id);
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Cashfree API Error:', data);
+            return new Response(
+                JSON.stringify({ error: 'Payment Gateway Error', details: data.message }),
+                { status: response.status, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
 
         return new Response(
             JSON.stringify({
                 success: true,
-                orderId: orderData.order_id,
-                paymentSessionId: orderData.payment_session_id,
-                cfOrderId: orderData.cf_order_id,
+                orderId: data.order_id,
+                paymentSessionId: data.payment_session_id,
+                cfOrderId: data.cf_order_id,
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
 
     } catch (error: any) {
-        console.error('Order Creation Error:', error.response?.data?.message || error.message);
+        console.error('Handler Error:', error);
         return new Response(
-            JSON.stringify({
-                error: 'Failed to create order',
-                details: error.response?.data?.message || error.message
-            }),
+            JSON.stringify({ error: 'Internal Server Error', details: error.message }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
