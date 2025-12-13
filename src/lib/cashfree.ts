@@ -1,6 +1,13 @@
-// Cashfree Payment Integration with Vercel Backend
+// Cashfree Payment Integration
 // Real UPI payments via Cashfree
-import { load } from '@cashfreepayments/cashfree-js';
+
+declare global {
+  interface Window {
+    Cashfree: {
+      load: (config: { mode: 'sandbox' | 'production' }) => Promise<CashfreeInstance>;
+    };
+  }
+}
 
 interface CashfreeInstance {
   checkout: (config: CheckoutConfig) => Promise<CheckoutResult>;
@@ -21,10 +28,6 @@ interface CheckoutResult {
 // API base URL - uses relative path for Vercel
 const API_BASE = '/api';
 
-// Cashfree mode
-// Check if we are in production based on URL or environment
-const CASHFREE_MODE: 'sandbox' | 'production' = 'production';
-
 // Initialize Cashfree SDK
 let cashfreeInstance: CashfreeInstance | null = null;
 
@@ -32,13 +35,31 @@ const initCashfree = async (): Promise<CashfreeInstance | null> => {
   if (cashfreeInstance) return cashfreeInstance;
 
   try {
-    console.log('Initializing Cashfree SDK (v1.0.5)...');
-    console.log('Mode: production');
+    console.log('Initializing Cashfree SDK (CDN Version)...');
 
-    cashfreeInstance = await load({ mode: 'production' });
-
-    console.log('Cashfree SDK initialized.');
-    return cashfreeInstance;
+    // Check if script is loaded
+    if (typeof window !== 'undefined' && window.Cashfree) {
+      // NOTE: Using 'production' mode strictly as per your setup
+      cashfreeInstance = await window.Cashfree.load({ mode: 'production' });
+      console.log('Cashfree SDK initialized (Production Mode)');
+      return cashfreeInstance;
+    } else {
+      console.error('Cashfree SDK script not loaded in window');
+      // Fallback: Try to load it dynamically if missing
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.onload = async () => {
+          if (window.Cashfree) {
+            cashfreeInstance = await window.Cashfree.load({ mode: 'production' });
+            resolve(cashfreeInstance);
+          } else {
+            resolve(null);
+          }
+        };
+        document.body.appendChild(script);
+      });
+    }
   } catch (error) {
     console.error('Failed to initialize Cashfree:', error);
   }
@@ -90,11 +111,11 @@ export const initiateCashfreePayment = async (
   onFailure: (error: string) => void
 ): Promise<void> => {
   try {
-    // Initialize Cashfree SDK
+    // Initialize SDK first
     const cashfree = await initCashfree();
 
     if (!cashfree) {
-      onFailure('Payment service initialization failed. Please try again.');
+      onFailure('Payment service could not be loaded. Please refresh.');
       return;
     }
 
@@ -111,7 +132,7 @@ export const initiateCashfreePayment = async (
     // Open Cashfree checkout
     const result = await cashfree.checkout({
       paymentSessionId: order.paymentSessionId,
-      redirectTarget: '_modal', // Opens in modal for better UX
+      redirectTarget: '_modal',
     });
 
     if (result.error) {
@@ -124,25 +145,5 @@ export const initiateCashfreePayment = async (
   } catch (error) {
     console.error('Payment error:', error);
     onFailure('An error occurred. Please try again.');
-  }
-};
-
-// Check payment status
-export const checkPaymentStatus = async (orderId: string): Promise<{
-  success: boolean;
-  status: string;
-  message: string;
-}> => {
-  try {
-    const response = await fetch(`${API_BASE}/payment-status?orderId=${orderId}`);
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error checking payment status:', error);
-    return {
-      success: false,
-      status: 'error',
-      message: 'Failed to check payment status',
-    };
   }
 };

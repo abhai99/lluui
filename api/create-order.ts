@@ -24,7 +24,21 @@ export default async function handler(request: Request) {
         const body: OrderRequest = await request.json();
         const { plan, customerName, customerEmail, customerPhone } = body;
 
-        // Configuration
+        // Validation (as per Cashfree checklist)
+        if (!plan || !customerName || !customerEmail) {
+            return new Response(
+                JSON.stringify({ error: 'Missing required fields' }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        const phone = customerPhone || '9999999999';
+        if (!/^\d{10}$/.test(phone)) {
+            return new Response(
+                JSON.stringify({ error: 'Phone number must be exactly 10 digits' }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
         const appId = process.env.CASHFREE_APP_ID;
         const secretKey = process.env.CASHFREE_SECRET_KEY;
         const env = process.env.CASHFREE_ENV || 'sandbox';
