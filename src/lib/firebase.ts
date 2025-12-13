@@ -10,11 +10,19 @@ const firebaseConfig = {
   appId: "1:617856504132:web:248501dbc2c2c8c2828711"
 };
 
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getApps, getApp } from "firebase/app";
 
-const app = initializeApp(firebaseConfig);
+// Singleton Pattern (prevents double-init in HMR)
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Initialize Firestore with specific settings for reliability
+// We use long-polling if websockets fail (common cause of "offline" errors)
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 
 const googleProvider = new GoogleAuthProvider();
 
