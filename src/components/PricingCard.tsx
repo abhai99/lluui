@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,10 +13,19 @@ interface PricingCardProps {
 }
 
 export const PricingCard = ({ plan, price, features, popular }: PricingCardProps) => {
-  const { user, signIn, setSubscription } = useAuth();
+  const { user, signIn, subscription, setSubscription } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Reset processing state when component mounts (fixes stuck loading state on back navigation)
+  useEffect(() => {
+    setIsProcessing(false);
+  }, []);
+
+  const isCurrentPlan = subscription?.plan === plan && subscription?.isSubscribed;
+
   const handleSubscribe = async () => {
+    if (isCurrentPlan) return;
+
     if (!user) {
       const result = await signIn();
       if (result.error) {
@@ -80,8 +89,8 @@ export const PricingCard = ({ plan, price, features, popular }: PricingCardProps
 
   return (
     <div className={`relative rounded-2xl p-8 transition-all duration-300 hover:scale-[1.02] ${popular
-        ? 'gradient-premium text-primary-foreground shadow-elevated'
-        : 'bg-card border-2 border-border shadow-soft hover:shadow-elevated'
+      ? 'gradient-premium text-primary-foreground shadow-elevated'
+      : 'bg-card border-2 border-border shadow-soft hover:shadow-elevated'
       }`}>
       {popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -125,13 +134,15 @@ export const PricingCard = ({ plan, price, features, popular }: PricingCardProps
         size="lg"
         className="w-full"
         onClick={handleSubscribe}
-        disabled={isProcessing}
+        disabled={isProcessing || isCurrentPlan}
       >
         {isProcessing ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
             Processing...
           </>
+        ) : isCurrentPlan ? (
+          'Current Plan'
         ) : user ? (
           'Subscribe Now'
         ) : (

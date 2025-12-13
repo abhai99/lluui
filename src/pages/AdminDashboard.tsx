@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, DollarSign, TrendingUp, Settings, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export const AdminDashboard = () => {
     const [prices, setPrices] = useState({
@@ -13,6 +15,25 @@ export const AdminDashboard = () => {
 
     const [isLoading, setIsLoading] = useState(false);
 
+    // Fetch prices on mount
+    useEffect(() => {
+        const fetchPrices = async () => {
+            try {
+                const docRef = doc(db, "config", "prices");
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    setPrices(docSnap.data() as any);
+                }
+            } catch (error) {
+                console.error("Error fetching prices:", error);
+                toast.error("Failed to load current prices");
+            }
+        };
+        fetchPrices();
+    }, []);
+
+
+
     const handlePriceChange = (plan: 'weekly' | 'monthly', value: string) => {
         const numValue = parseInt(value) || 0;
         setPrices((prev) => ({ ...prev, [plan]: numValue }));
@@ -20,10 +41,15 @@ export const AdminDashboard = () => {
 
     const savePrices = async () => {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setIsLoading(false);
-        toast.success('Prices updated successfully');
+        try {
+            await setDoc(doc(db, "config", "prices"), prices);
+            toast.success('Prices updated successfully');
+        } catch (error) {
+            console.error("Error saving prices:", error);
+            toast.error("Failed to save prices");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
