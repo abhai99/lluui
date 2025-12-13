@@ -2,13 +2,12 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCLg61i0XkPaf9cEp34mK82BJfFKQK1wbk",
-  authDomain: "chat-b81d7.firebaseapp.com",
-  databaseURL: "https://chat-b81d7.firebaseio.com",
-  projectId: "chat-b81d7",
-  storageBucket: "chat-b81d7.firebasestorage.app",
-  messagingSenderId: "1071923503749",
-  appId: "1:1071923503749:web:6457ec3565cf8f07af3fec"
+  apiKey: "AIzaSyABK3hb1ucRu1jjrTu98VMiZvmbdoNYr8s",
+  authDomain: "winultmate.firebaseapp.com",
+  projectId: "winultmate",
+  storageBucket: "winultmate.firebasestorage.app",
+  messagingSenderId: "617856504132",
+  appId: "1:617856504132:web:248501dbc2c2c8c2828711"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -20,8 +19,8 @@ export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return { user: result.user, error: null };
-  } catch (error: any) {
-    return { user: null, error: error.message };
+  } catch (error: unknown) {
+    return { user: null, error: error instanceof Error ? error.message : String(error) };
   }
 };
 
@@ -29,8 +28,8 @@ export const logOut = async () => {
   try {
     await signOut(auth);
     return { error: null };
-  } catch (error: any) {
-    return { error: error.message };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 };
 

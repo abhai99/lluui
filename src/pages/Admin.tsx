@@ -3,10 +3,10 @@ import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { 
-  Users, 
-  CreditCard, 
-  BarChart3, 
+import {
+  Users,
+  CreditCard,
+  BarChart3,
   Settings,
   Plus,
   Edit2,
@@ -45,7 +45,9 @@ const Admin = () => {
     return <Navigate to="/" replace />;
   }
 
-  const tabs = [
+  type TabId = 'users' | 'pages' | 'subscriptions' | 'settings';
+
+  const tabs: Array<{ id: TabId; label: string; icon: typeof Settings }> = [
     { id: 'pages', label: 'Manage Pages', icon: Settings },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCard },
@@ -89,7 +91,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen gradient-hero">
       <Navbar />
-      
+
       <main className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
           {/* Header */}
@@ -103,12 +105,11 @@ const Admin = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? 'gradient-primary text-primary-foreground shadow-soft'
-                    : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
-                }`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${activeTab === tab.id
+                  ? 'gradient-primary text-primary-foreground shadow-soft'
+                  : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -127,11 +128,11 @@ const Admin = () => {
                     Add Page
                   </Button>
                 </div>
-                
+
                 <div className="space-y-4">
                   {pages.map((page) => (
-                    <div 
-                      key={page.id} 
+                    <div
+                      key={page.id}
                       className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border"
                     >
                       {editingPage === page.id ? (
@@ -148,7 +149,7 @@ const Admin = () => {
                           <span className="font-medium text-foreground">{page.title}</span>
                         </div>
                       )}
-                      
+
                       <div className="flex items-center gap-2">
                         {editingPage === page.id ? (
                           <Button size="sm" onClick={() => handleSavePage(page.id)}>
@@ -157,16 +158,16 @@ const Admin = () => {
                           </Button>
                         ) : (
                           <>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleTogglePage(page.id)}
                               title={page.isActive ? 'Hide' : 'Show'}
                             >
                               <Eye className={`w-4 h-4 ${page.isActive ? 'text-green-500' : 'text-muted-foreground'}`} />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => {
                                 setEditingPage(page.id);
@@ -175,8 +176,8 @@ const Admin = () => {
                             >
                               <Edit2 className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => handleDeletePage(page.id)}
                             >
@@ -210,11 +211,10 @@ const Admin = () => {
                           <td className="py-4 px-4 text-foreground">{user.name}</td>
                           <td className="py-4 px-4 text-muted-foreground">{user.email}</td>
                           <td className="py-4 px-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              user.subscribed 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-muted text-muted-foreground'
-                            }`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.subscribed
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-muted text-muted-foreground'
+                              }`}>
                               {user.subscribed ? 'Active' : 'Free'}
                             </span>
                           </td>
