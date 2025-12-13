@@ -34,19 +34,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
+    const unsubscribe = onAuthChange(async (user) => {
       setUser(user);
-      setLoading(false);
-      
-      // Here you would fetch subscription status from your database
-      // For now, we'll mock it based on the user
+
       if (user) {
-        // Mock subscription check - replace with actual API call
-        setSubscription({
-          isSubscribed: false,
-          plan: null,
-          expiresAt: null,
-        });
+        setLoading(true);
+        try {
+          // Fetch real subscription data from Firestore
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('@/lib/firebase');
+
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            // Check if expiry date is valid
+            const expiresAt = data.subscription?.expiresAt ? new Date(data.subscription.expiresAt.seconds * 1000) : null;
+            const isValid = expiresAt ? expiresAt > new Date() : false;
+
+            setSubscription({
+              isSubscribed: isValid,
+              plan: isValid ? data.subscription?.plan : null,
+              expiresAt: expiresAt
+            });
+          } else {
+            setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
+          }
+        } catch (error) {
+          console.error("Error fetching user subscription:", error);
+          setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
+        setLoading(false);
       }
     });
 
@@ -67,14 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      subscription, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      subscription,
       isAdmin,
-      signIn, 
+      signIn,
       signOutUser,
-      setSubscription 
+      setSubscription
     }}>
       {children}
     </AuthContext.Provider>
