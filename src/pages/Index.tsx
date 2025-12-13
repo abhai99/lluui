@@ -12,7 +12,10 @@ import {
   Users,
   ArrowRight,
   Star,
-  Lock
+  Lock,
+  Zap,
+  Brain,
+  Moon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
