@@ -322,7 +322,7 @@ export const AdminDashboard = () => {
 
                             <Accordion type="single" collapsible className="w-full">
                                 {[1, 2, 3, 4, 5].map((num) => {
-                                    const key = `page${num}` as keyof typeof pages;
+                                    const key = `page${num}`;
                                     return (
                                         <AccordionItem key={key} value={String(num)}>
                                             <AccordionTrigger>Page {num} Config</AccordionTrigger>

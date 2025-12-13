@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wingo Oracle [Precision AI]</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: #050505;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            /* REMOVED PADDING */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .container {
+            background: #111;
+            padding: 15px;
+            /* Reduced padding */
+            /* border-radius: 20px; REMOVED RADIUS */
+            width: 100%;
+            /* FULL WIDTH */
+            max-width: none;
+            /* REMOVED MAX-WIDTH */
+            border: none;
+            /* REMOVED BORDER */
+            text-align: center;
+            box-shadow: none;
+            /* REMOVED SHADOW */
+            min-height: 100vh;
+        }
+
+        .display-box {
+            background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
+            border: 2px solid #333;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .pred-type {
+            font-size: 3.5em;
+            font-weight: 900;
+            margin: 10px 0;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .pred-sub {
+            font-size: 1.1em;
+            color: #aaa;
+            letter-spacing: 1px;
+        }
+
+        .highlight-num {
+            color: #fff;
+            font-weight: bold;
+            border-bottom: 2px solid #ffd700;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .a-box {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .a-lbl {
+            font-size: 0.7em;
+            color: #666;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .a-val {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 1.2em;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(90deg, #ffd700, #e1b12c);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .btn-auto {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            font-size: 0.9em;
+            padding: 10px;
+            width: auto;
+            margin: 0;
+        }
+
+        .logs {
+            height: 180px;
+            overflow-y: auto;
+            background: #000;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #111;
+        }
+
+        .c-Big {
+            color: #ff7b72;
+        }
+
+        .c-Small {
+            color: #3fb950;
+        }
+
+        .c-Wait {
+            color: #444;
+        }
+
+        .win {
+            color: #00e676;
+        }
+
+        .loss {
+            color: #ff4757;
+        }
+
+        .safe-zone {
+            color: #ffd700;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2 style="margin:0 0 10px 0; color:#ffd700;">👁️ PRECISION ORACLE</h2>
+        <div class="input-group"> <input type="number" id="periodInput" placeholder="Next 3-digit period"> <input
+                type="number" id="resultInput" placeholder="Current number"> </div> <button
+            onclick="manualPredict()">ANALYZE & PREDICT</button>
+        <div class="display-box" id="mainBox">
+            <div style="font-size:0.8em; color:#666;">AI CONFIDENCE</div>
+            <div id="predText" class="pred-type c-Wait">---</div>
+            <div id="predNum" class="pred-sub">Best Numbers: <span class="highlight-num">-</span></div>
+        </div>
+        <div class="analysis-grid">
+            <div class="a-box"> <span class="a-lbl">MATH SIGNAL</span> <span id="mathSig" class="a-val">-</span> </div>
+            <div class="a-box"> <span class="a-lbl">MEMORY PATTERN</span> <span id="memSig" class="a-val">-</span>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px; align-items:center;"> <button
+                class="btn-auto" onclick="toggleAuto()">🔄 START AUTO-FETCH</button> </div>
+        <div id="logBox" class="logs">
+            <div style="text-align:center; padding:20px; color:#333;">History Empty</div>
+        </div>
+    </div>
+    <script> // STATE let historyDB = []; // Stores past results let activePrediction = null; let lastProcessedPeriod = -1; let lastResult = -1; let autoInterval = null; // --- PATTERN MEMORY ENGINE --- function analyzeHistory(currentNum) { if (historyDB.length < 10) return "Neutral"; let bigCount = 0, smallCount = 0, matches = 0; for (let i = 1; i < historyDB.length; i++) { const prevNum = historyDB[i].num; const nextResult = historyDB[i-1].num; if (prevNum === currentNum) { matches++; if (nextResult >= 5) bigCount++; else smallCount++; } } if (matches === 0) return "Neutral"; if (bigCount > smallCount) return "Big"; if (smallCount > bigCount) return "Small"; return "Neutral"; } // --- MATH LOGIC --- function calculateMath(periodStr, lastResult) { const pDigit = parseInt(String(periodStr).slice(-1)) || 0; let raw = (pDigit + lastResult + 1); let final = raw % 10; return final >= 5 ? "Big" : "Small"; } // --- NUMBER PREDICTOR --- function predictNumbers(size, lastResult) { let nums = []; if (size === "Big") { nums.push((lastResult + 2) % 10); nums.push(lastResult === 9 ? 5 : lastResult + 1); if (nums[0] < 5) nums[0] = 9; } else { nums.push(Math.abs(lastResult - 2) % 5); nums.push(lastResult === 0 ? 4 : lastResult - 1); } return nums; } // --- MASTER PREDICTOR --- function runPrediction(period, result) { const mathSig = calculateMath(period, result); const memSig = analyzeHistory(result); let final = "Skip"; if (memSig === "Neutral") final = mathSig; else if (mathSig === memSig) final = mathSig; const nums = predictNumbers(final === "Skip" ? mathSig : final, result); return { math: mathSig, mem: memSig, final: final, nums: nums }; } // --- UI UPDATE --- function updateUI(targetPeriod, data) { const mathEl = document.getElementById('mathSig'); const memEl = document.getElementById('memSig'); mathEl.innerText = data.math; mathEl.className = "a-val c-" + data.math; memEl.innerText = data.mem; memEl.className = "a-val c-" + data.mem; const mainEl = document.getElementById('predText'); const box = document.getElementById('mainBox'); const numEl = document.getElementById('predNum'); if (data.final === "Skip") { mainEl.innerText = "WAIT"; mainEl.className = "pred-type c-Wait"; box.style.borderColor = "#333"; numEl.innerHTML = "Conflict detected. Skipping."; } else { mainEl.innerText = data.final; mainEl.className = "pred-type c-" + data.final; box.style.borderColor = data.final === "Big" ? "#ff7b72" : "#3fb950"; numEl.innerHTML = \`Target ...\${targetPeriod.toString().slice(-3)}: <span class="highlight-num">\${data.nums.join(", ")}</span>\`; } activePrediction = { period: targetPeriod, pick: data.final, nums: data.nums }; } // --- MANUAL PREDICT (keeps previous behaviour) --- function manualPredict() { const pVal = document.getElementById('periodInput').value; const rVal = parseInt(document.getElementById('resultInput').value); // User-provided pVal might be 3-digit short; store as-is if (!pVal || isNaN(rVal)) return alert("Enter period and result to predict."); historyDB.unshift({ period: parseInt(pVal), num: rVal }); if (historyDB.length > 50) historyDB.pop(); const pred = runPrediction(pVal, rVal); updateUI(parseInt(pVal) + 1, pred); } // --- AUTO FETCH (no proxy) --- async function fetchData() { const ts = Date.now(); const url = \`https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=\${ts}\`; try { const res = await fetch(url, { cache: "no-store" }); const data = await res.json(); if (!data?.data?.list?.length) return; const latest = data.data.list[0]; const serverPeriod = parseInt(latest.issueNumber); const resultNum = parseInt(latest.number); if (isNaN(serverPeriod) || isNaN(resultNum)) return; const outcome = resultNum >= 5 ? "Big" : "Small"; // Consider update when period OR result changed const isNewUpdate = (serverPeriod !== lastProcessedPeriod) || (resultNum !== lastResult); if (!isNewUpdate) return; // update trackers immediately so repeated quick fetches won't re-process same values lastProcessedPeriod = serverPeriod; lastResult = resultNum; // Update UI - show next period's last 3 digits const nextPeriod = serverPeriod + 1; document.getElementById('periodInput').value = nextPeriod.toString().slice(-3); document.getElementById('resultInput').value = resultNum; // Add to memory (keep recent 100) historyDB.unshift({ period: serverPeriod, num: resultNum }); if (historyDB.length > 100) historyDB.pop(); // Check WIN for previous activePrediction if (activePrediction && activePrediction.period === serverPeriod && activePrediction.pick !== "Skip") { const won = (activePrediction.pick === outcome); const exact = activePrediction.nums.includes(resultNum); addLog(serverPeriod, activePrediction.pick, outcome, won, exact); } // Generate prediction for next const pred = runPrediction(serverPeriod, resultNum); updateUI(nextPeriod, pred); } catch (err) { console.log("Fetch error:", err); } } // --- LOGS --- function addLog(period, pick, res, won, exact) { const box = document.getElementById('logBox'); if (box.innerText.includes("History Empty") || box.innerText.includes("Empty")) box.innerHTML = ""; const div = document.createElement('div'); div.className = "row"; let color = won ? "win" : "loss"; let status = won ? "WIN" : "LOSS"; if (exact) { status = "JACKPOT"; color = "safe-zone"; } div.innerHTML = \`<span>...\${period.toString().slice(-4)}</span><span>\${pick} vs \${res}</span><span class="\${color}">\${status}</span>\`; box.prepend(div); } // --- AUTO TOGGLE --- function toggleAuto() { const btn = document.querySelector('.btn-auto'); if (autoInterval) { clearInterval(autoInterval); autoInterval = null; btn.innerText = "🔄 START AUTO-FETCH"; } else { // immediate fetch + repetitive fetchData(); autoInterval = setInterval(fetchData, 3000); btn.innerText = "⛔ STOP AUTO-FETCH"; } } // Optionally: run a single fetch once page loads // fetchData(); </script>
+</body>
+
+</html>

@@ -1,7 +1,7 @@
-import page1Html from '../content/page1.html?raw';
-import page2Html from '../content/page2.html?raw';
-import page3Html from '../content/page3.html?raw';
-import page4Html from '../content/page4.html?raw';
+import page1Html from '@/content/page1.html?raw';
+import page2Html from '@/content/page2.html?raw';
+import page3Html from '@/content/page3.html?raw';
+import page4Html from '@/content/page4.html?raw';
 
 export const defaultPages = {
     page1: {

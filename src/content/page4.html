@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wingo Analyst [Timer-Lock]</title>
+    <style>
+        /* --- DARK THEME UI --- */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #050505;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            /* Removed padding */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .container {
+            background: #111;
+            padding: 15px;
+            /* border-radius: 12px; */
+            width: 100%;
+            max-width: none;
+            /* REMOVED MAX-WIDTH */
+            border: none;
+            /* REMOVED BORDER */
+            text-align: center;
+            min-height: 100vh;
+        }
+
+        /* HEADER & STATUS */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        /* SPLIT VIEW */
+        .split-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .half {
+            flex: 1;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .lbl {
+            font-size: 0.6em;
+            color: #aaa;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .big-txt {
+            font-weight: 900;
+            font-size: 1.5em;
+        }
+
+        /* STRATEGY GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            background: #222;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .c-title {
+            font-size: 0.6em;
+            color: #888;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .c-val {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .b-gold {
+            border-bottom: 2px solid gold;
+        }
+
+        .b-silv {
+            border-bottom: 2px solid silver;
+        }
+
+        .b-bron {
+            border-bottom: 2px solid #cd7f32;
+        }
+
+        /* LOGS */
+        .logs {
+            height: 250px;
+            overflow-y: auto;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+
+        .row {
+            border-bottom: 1px solid #222;
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .win {
+            color: #00e676;
+        }
+
+        .loss {
+            color: #ff4757;
+        }
+
+        .skip {
+            color: #555;
+        }
+
+        /* UTILS */
+        .c-Big {
+            color: #ff4757;
+        }
+
+        .c-Small {
+            color: #00e676;
+        }
+
+        .c-Wait {
+            color: #555;
+        }
+
+        .controls {
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #2980b9;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .timer-box {
+            font-family: monospace;
+            color: #f1c40f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="top-bar"> <span>CLOCK: <span id="clock" style="color:white;">--:--:--</span></span> <span
+                class="timer-box" id="nextScan">Next: --s</span> </div>
+        <div class="split-box">
+            <div class="half" style="border-color: #444;"> <span class="lbl">LAST RESULT</span>
+                <div id="lastResDisplay" style="font-size:1.2em; font-weight:bold;">---</div>
+                <div id="lastPerDisplay" style="font-size:0.8em; color:#666;">...</div>
+            </div>
+            <div class="half" style="border-color: #00e676;"> <span class="lbl">NEXT TARGET</span>
+                <div id="mainPred" class="big-txt c-Wait">---</div>
+                <div id="nextPerDisplay" style="font-size:0.8em; color:#00e676;">...</div>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="card b-gold"><span class="c-title">🥇 Link</span><span id="gVal" class="c-val">-</span></div>
+            <div class="card b-silv"><span class="c-title">🥈 Neural</span><span id="sVal" class="c-val">-</span></div>
+            <div class="card b-bron"><span class="c-title">🥉 Time</span><span id="bVal" class="c-val">-</span></div>
+        </div>
+        <div class="controls"> <button onclick="fetchData()">Force Manual Fetch</button> </div>
+        <div id="logBox" class="logs">
+            <div style="text-align:center; padding:20px; color:#444;">Waiting for :02 seconds...</div>
+        </div>
+    </div>
+    <script> // --- STATE --- let lastKnownPeriod = "0"; // String to prevent math error let activePrediction = null; let hasFetchedThisMinute = false; // Flag to prevent double fetch // --- 1. MATH LOGIC --- function calculate(periodStr, resultNum) { const min = new Date().getMinutes() % 10; const curP_LastDigit = parseInt(periodStr.slice(-1)); const nextP_LastDigit = (curP_LastDigit + 1) % 10; const s1 = ((nextP_LastDigit + resultNum) % 10) >= 5 ? "Big" : "Small"; let v2 = (resultNum * 2) + min; if(resultNum === 0 || resultNum === 5) v2 += 1; const s2 = (v2 % 10) >= 5 ? "Big" : "Small"; const s3 = Math.abs(min - resultNum) >= 5 ? "Big" : "Small"; // Consensus const bigs = [s1, s2, s3].filter(x => x === "Big").length; const final = bigs >= 2 ? "Big" : "Small"; return { gold: s1, silver: s2, bronze: s3, final: final }; } // --- 2. FETCH FUNCTION (Direct - No Proxy) --- async function fetchData() { const ts = Date.now(); const url = \`https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=\${ts}\`; try { // Visual Indicator that fetch is happening document.getElementById('nextScan').innerText = "FETCHING..."; document.getElementById('nextScan').style.color = "#00e676"; const res = await fetch(url); const data = await res.json(); if(data?.data?.list?.length) { const latest = data.data.list[0]; const serverPeriodStr = String(latest.issueNumber); const resultNum = parseInt(latest.number); const resultOutcome = resultNum >= 5 ? "Big" : "Small"; // CHECK IF NEW PERIOD if (serverPeriodStr !== lastKnownPeriod) { // 1. Check Win/Loss of Previous if (activePrediction) { if (activePrediction.period === serverPeriodStr) { const isWin = (activePrediction.pick === resultOutcome); addLog(serverPeriodStr, \`\${activePrediction.pick} vs \${resultOutcome}\`, isWin ? "win" : "loss"); } else { // If period ID jumped (Network lag) addLog(activePrediction.period, "Skipped", "skip"); } } // 2. Update State lastKnownPeriod = serverPeriodStr; // 3. Calc Next Target // Use BigInt logic for incrementing string ID safely const nextPeriodBigInt = BigInt(serverPeriodStr) + 1n; const targetPeriodStr = nextPeriodBigInt.toString(); const strats = calculate(serverPeriodStr, resultNum); // 4. Update UI document.getElementById('lastResDisplay').innerText = \`\${resultNum} (\${resultOutcome})\`; document.getElementById('lastResDisplay').className = "c-" + resultOutcome; document.getElementById('lastPerDisplay').innerText = "..." + serverPeriodStr.slice(-4); document.getElementById('mainPred').innerText = strats.final; document.getElementById('mainPred').className = "big-txt c-" + strats.final; document.getElementById('nextPerDisplay').innerText = "..." + targetPeriodStr.slice(-4); updateCard('gVal', strats.gold); updateCard('sVal', strats.silver); updateCard('bVal', strats.bronze); // 5. Store Prediction activePrediction = { period: targetPeriodStr, pick: strats.final }; } } } catch(e) { console.error("Fetch Error:", e); document.getElementById('nextScan').innerText = "ERROR"; document.getElementById('nextScan').style.color = "#ff4757"; } } // --- 3. TIMING ENGINE (The Lock) --- setInterval(() => { const now = new Date(); const s = now.getSeconds(); // Update Clock UI document.getElementById('clock').innerText = now.toLocaleTimeString('en-US',{hour12:false}); // Countdown UI let diff = 62 - s; if(diff > 60) diff -= 60; if(document.getElementById('nextScan').innerText !== "FETCHING...") { document.getElementById('nextScan').innerText = \`Scan in: \${diff}s\`; document.getElementById('nextScan').style.color = "#f1c40f"; } // RESET FLAG at Second 50 if (s > 50) { hasFetchedThisMinute = false; } // TRIGGER AT SECOND 02 if (s === 2 && !hasFetchedThisMinute) { hasFetchedThisMinute = true; fetchData(); } }, 1000); // Check every second // --- UI HELPERS --- function updateCard(id, val) { const el = document.getElementById(id); el.innerText = val; el.className = "c-val c-" + val; } function addLog(periodStr, text, type) { const box = document.getElementById('logBox'); if(box.innerText.includes("Waiting")) box.innerHTML = ""; const div = document.createElement('div'); div.className = "row"; const pStr = String(periodStr).slice(-4); const icon = type === 'win' ? 'WIN 🟢' : (type === 'loss' ? 'LOSS 🔴' : 'SKIP ⚪'); div.innerHTML = \`<span>...\${pStr}</span><span>\${text}</span><span class="\${type}">\${icon}</span>\`; box.prepend(div); } // Initial Fetch on Load (so you don't wait 1 minute to see data) fetchData(); </script>
+</body>
+
+</html>
