@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.19 - Persistence & Premium UX');
+console.log('🚀 SYSTEM UPDATE: Version 5.20 - User Auto-Save on Login');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
