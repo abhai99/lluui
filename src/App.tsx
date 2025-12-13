@@ -11,7 +11,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.7 - Redirect Mode (No Iframe)');
+console.log('🚀 SYSTEM UPDATE: Version 5.8 - Revert Sanitizer (Test Original ID)');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (

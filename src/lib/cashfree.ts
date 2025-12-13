@@ -137,15 +137,11 @@ export const initiateCashfreePayment = async (
     console.log('Order created:', order);
 
     // Open Cashfree checkout
-    // Defensive fix: Strip 'paymentpayment' suffix if it appeared
-    const cleanSessionId = order.paymentSessionId.replace(/paymentpayment$/, '');
-
-    if (cleanSessionId !== order.paymentSessionId) {
-      console.warn('Sanitized Session ID:', cleanSessionId);
-    }
+    // Reverting Sanitizer: Testing if original ID works now that Whitelist is approved
+    console.log('Using Original Session ID:', order.paymentSessionId);
 
     const result = await cashfree.checkout({
-      paymentSessionId: cleanSessionId,
+      paymentSessionId: order.paymentSessionId,
       redirectTarget: '_self',
     });
 
