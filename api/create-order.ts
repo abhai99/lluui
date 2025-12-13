@@ -1,12 +1,12 @@
 // Cashfree Create Order API
 // POST /api/create-order
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export const config = {
     maxDuration: 10,
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Using 'any' to avoid build failures if @vercel/node types are missing in Vercel environment
+export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

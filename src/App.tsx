@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.5 - Ghostbuster Fix (Sanitized ID)');
+console.log('🚀 SYSTEM UPDATE: Version 5.6 - Force Build Fix');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
