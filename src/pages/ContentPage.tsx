@@ -10,6 +10,7 @@ const ContentPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [content, setContent] = useState<string | null>(null);
+    const [title, setTitle] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -23,6 +24,7 @@ const ContentPage = () => {
                     const pageKey = `page${id}`;
                     if (data[pageKey]) {
                         setContent(data[pageKey].content);
+                        setTitle(data[pageKey].title);
                     }
                 }
             } catch (error) {
@@ -53,19 +55,21 @@ const ContentPage = () => {
     }
 
     return (
-        <div className="min-h-screen gradient-hero">
-            <Navbar /> {/* Existing Navbar handles mobile menu */}
-
-            <div className="pt-24 px-4 pb-12 w-full max-w-7xl mx-auto">
-                <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 hover:bg-white/10">
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+            {/* Minimal Sticky Header for App feel */}
+            <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/10 px-4 h-14 flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2 hover:bg-white/10 rounded-full h-10 w-10">
                     <ArrowLeft className="w-5 h-5" />
-                    Back to Home
                 </Button>
+                <h1 className="font-semibold text-lg truncate flex-1">{title || 'Content'}</h1>
+            </div>
 
-                {/* Render HTML Content Securely */}
-                <div className="w-full bg-card/50 backdrop-blur-md p-6 md:p-10 rounded-3xl shadow-2xl border border-white/10">
+            {/* Full Width Content Area */}
+            <div className="flex-1 w-full max-w-md mx-auto md:max-w-4xl"> {/* Centered on desktop, full on mobile */}
+                <div className="w-full h-full p-2 md:p-6">
                     <div
-                        className="prose prose-invert prose-lg max-w-none w-full"
+                        className="prose prose-invert prose-lg max-w-none w-full
+                                   [&>div]:w-full [&>div]:max-w-none [&_iframe]:w-full [&_iframe]:aspect-video"
                         dangerouslySetInnerHTML={{ __html: content }}
                     />
                 </div>
