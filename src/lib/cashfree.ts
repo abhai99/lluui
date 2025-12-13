@@ -34,11 +34,33 @@ const CASHFREE_MODE: 'sandbox' | 'production' = 'sandbox';
 // Initialize Cashfree SDK
 let cashfreeInstance: CashfreeInstance | null = null;
 
+const loadCashfreeSdk = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (window.Cashfree) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+    document.body.appendChild(script);
+  });
+};
+
 const initCashfree = async (): Promise<CashfreeInstance | null> => {
   if (cashfreeInstance) return cashfreeInstance;
 
   try {
-    if (typeof window !== 'undefined' && window.Cashfree) {
+    if (typeof window === 'undefined') return null;
+
+    if (!window.Cashfree) {
+      console.log('Cashfree SDK not found, loading dynamically...');
+      await loadCashfreeSdk();
+    }
+
+    if (window.Cashfree) {
       cashfreeInstance = await window.Cashfree.load({ mode: CASHFREE_MODE });
       console.log('Cashfree SDK initialized');
       return cashfreeInstance;
