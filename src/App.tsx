@@ -7,11 +7,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { AdminDashboard } from "./pages/AdminDashboard";
+import ContentPage from "./pages/ContentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-console.log('🚀 SYSTEM UPDATE: Version 5.11 - Secure Verification Fix');
+console.log('🚀 SYSTEM UPDATE: Version 5.13 - CMS & Security Added');
 console.log('Build Timestamp:', new Date().toISOString());
 
 const App = () => (
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/content/:id" element={<ContentPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

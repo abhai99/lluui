@@ -4,11 +4,13 @@ import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 const PaymentSuccess = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { setSubscription } = useAuth();
+    const { setSubscription, user } = useAuth();
     const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
     const [countdown, setCountdown] = useState(5);
 
@@ -35,12 +37,36 @@ const PaymentSuccess = () => {
                     setStatus('success');
 
                     // Activate subscription based on REAL plan from backend
+                    const startDate = new Date();
                     const expiresAt = new Date();
                     // data.plan is guaranteed to be 'weekly' or 'monthly' by backend
                     if (data.plan === 'weekly') {
                         expiresAt.setDate(expiresAt.getDate() + 7);
                     } else {
                         expiresAt.setDate(expiresAt.getDate() + 30);
+                    }
+
+                    // Save to Firestore for persistent tracking
+                    if (user) {
+                        try {
+                            await setDoc(doc(db, 'users', user.uid), {
+                                email: user.email,
+                                displayName: user.displayName || 'User',
+                                subscription: {
+                                    isSubscribed: true,
+                                    plan: data.plan,
+                                    startDate: startDate.toISOString(),
+                                    expiresAt: expiresAt.toISOString(),
+                                    orderId: orderId,
+                                    transactionId: data.cf_payment_id || orderId, // Use Order ID if transaction ID missing
+                                    amount: data.amount,
+                                    currency: data.currency
+                                },
+                                lastUpdated: new Date().toISOString()
+                            }, { merge: true });
+                        } catch (err) {
+                            console.error("Error saving to Firestore:", err);
+                        }
                     }
 
                     setSubscription({
