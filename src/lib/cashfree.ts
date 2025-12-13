@@ -32,8 +32,12 @@ const initCashfree = async (): Promise<CashfreeInstance | null> => {
   if (cashfreeInstance) return cashfreeInstance;
 
   try {
-    cashfreeInstance = await load({ mode: CASHFREE_MODE });
-    console.log('Cashfree SDK initialized via NPM');
+    console.log('Initializing Cashfree SDK (v1.0.5)...');
+    console.log('Mode: production');
+
+    cashfreeInstance = await load({ mode: 'production' });
+
+    console.log('Cashfree SDK initialized.');
     return cashfreeInstance;
   } catch (error) {
     console.error('Failed to initialize Cashfree:', error);
