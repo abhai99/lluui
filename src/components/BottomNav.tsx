@@ -6,6 +6,11 @@ export const BottomNav = () => {
     const { user, isAdmin } = useAuth();
     const location = useLocation();
 
+    // Hide BottomNav on specific pages (e.g. Mobile Login Flow)
+    if (['/app-success', '/mobile-login'].includes(location.pathname)) {
+        return null;
+    }
+
     // Only show on mobile
     return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border/50 pb-safe">
