@@ -241,8 +241,15 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {[1, 2, 3, 4, 5].map((num) => {
               const key = `page${num}`;
-              // Fallback Logic:
-              const pageData = pages[key as keyof typeof pages] || defaultPages[key as keyof typeof defaultPages];
+              // Fallback Logic: Check CMS, then Default
+              const cmsPage = pages[key as keyof typeof pages];
+              const defPage = defaultPages[key as keyof typeof defaultPages];
+
+              // Merge: CMS takes priority, but fallback to default if missing/empty
+              const pageData = {
+                title: cmsPage?.title || defPage?.title,
+                content: cmsPage?.content || defPage?.content
+              };
 
               // Logic: If title exists AND content exists -> Active.
               const isActive = !!(pageData?.title && pageData?.content);
