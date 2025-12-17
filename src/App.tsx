@@ -10,6 +10,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Premium from "./pages/Premium";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import ContentPage from "./pages/ContentPage";
+import AppSuccess from "./pages/AppSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/premium" element={<Premium />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/content/:id" element={<ContentPage />} />
+            <Route path="/app-success" element={<AppSuccess />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />
