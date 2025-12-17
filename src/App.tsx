@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { BottomNav } from "./components/BottomNav";
 import Index from "./pages/Index";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Premium from "./pages/Premium";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import ContentPage from "./pages/ContentPage";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/premium" element={<Premium />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/content/:id" element={<ContentPage />} />
             <Route path="*" element={<NotFound />} />
