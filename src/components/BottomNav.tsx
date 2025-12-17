@@ -38,7 +38,7 @@ export const BottomNav = () => {
                         if (!user) {
                             // Mobile Deep Link Check
                             if (/Android/i.test(navigator.userAgent)) {
-                                window.location.href = "myapp://open-login";
+                                window.location.href = "myapp://native-login";
                             } else {
                                 signIn();
                             }

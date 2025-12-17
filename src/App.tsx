@@ -12,6 +12,7 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import ContentPage from "./pages/ContentPage";
 import AppSuccess from "./pages/AppSuccess";
 import MobileLogin from "./pages/MobileLogin";
+import AuthReceiver from "./pages/AuthReceiver";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/content/:id" element={<ContentPage />} />
             <Route path="/app-success" element={<AppSuccess />} />
             <Route path="/mobile-login" element={<MobileLogin />} />
+            <Route path="/auth-receiver" element={<AuthReceiver />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />

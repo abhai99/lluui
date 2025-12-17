@@ -3,15 +3,8 @@ import { Loader2 } from 'lucide-react';
 
 const MobileLogin = () => {
     useEffect(() => {
-        // Mobile App Entry Point
-        // Immediately trigger the deep link to open the login flow in Chrome Custom Tab
-        // The App should handle "myapp://open-login" by opening the browser to /login or similar (actually, it opens a Custom Tab to the login URL not deep link loop, wait.)
-
-        // Wait, user instructions:
-        // "WebView (website) -> User clicks Login -> window.location = myapp://open-login"
-
-        // If the user visits /mobile-login directly in the WebView, we should do the same:
-        window.location.href = "myapp://open-login";
+        // Trigger the Native App Login Block
+        window.location.href = "myapp://native-login";
     }, []);
 
     return (

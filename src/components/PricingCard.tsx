@@ -28,7 +28,7 @@ export const PricingCard = ({ plan, price, features, popular }: PricingCardProps
 
     if (!user) {
       if (/Android/i.test(navigator.userAgent)) {
-        window.location.href = "myapp://open-login";
+        window.location.href = "myapp://native-login";
         return; // Stop here, app will reload after login
       }
 

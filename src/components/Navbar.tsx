@@ -9,9 +9,9 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogin = () => {
-    // Mobile App Deep Link Trigger
+    // Mobile App Native Login Trigger
     if (/Android/i.test(navigator.userAgent)) {
-      window.location.href = "myapp://open-login";
+      window.location.href = "myapp://native-login";
     } else {
       signIn();
     }

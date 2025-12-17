@@ -196,7 +196,7 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button id="google-btn" variant="google" size="lg" onClick={() => {
                   if (/Android/i.test(navigator.userAgent)) {
-                    window.location.href = "myapp://open-login";
+                    window.location.href = "myapp://native-login";
                   } else {
                     signIn();
                   }
@@ -349,7 +349,7 @@ const Index = () => {
                 document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
               } else {
                 if (/Android/i.test(navigator.userAgent)) {
-                  window.location.href = "myapp://open-login";
+                  window.location.href = "myapp://native-login";
                 } else {
                   signIn();
                 }
