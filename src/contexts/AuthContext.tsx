@@ -34,103 +34,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (user) => {
-      setUser(user);
-
-      if (user) {
-        setLoading(true);
-        // Using dynamic import inside listener might cause race conditions if not careful, 
-        // but keeping structure for now. Better to import at top level but let's stick to existing pattern
-        // or just import globally since we use it a lot.
-        // Actually, let's fix the imports to be top-level for standard react practice in next step if needed.
-        // For now, implementing onSnapshot logic.
-
-        try {
-          const { doc, onSnapshot } = await import('firebase/firestore');
-          const { db } = await import('@/lib/firebase');
-          const userDocRef = doc(db, "users", user.uid);
-
-          // REALTIME LISTENER for User Profile
-          const profileUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-
-              // 1. Security Check: Remote Device ID vs Local Device ID
-              const remoteDeviceId = data.deviceId;
-              const localDeviceId = localStorage.getItem('deviceId');
-
-              if (remoteDeviceId && localDeviceId && remoteDeviceId !== localDeviceId) {
-                console.warn("Session invalidated: New login detected on another device.");
-
-                // Unsubscribe from this listener to prevent loops (though signOut triggers unmount)
-                // Actually we can't easily access profileUnsubscribe here before it's defined? 
-                // Ah, snapshot listener is robust. 
-
-                logOut().then(() => {
-                  setUser(null);
-                  setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
-                  alert("You have been logged out because your account was accessed from another device.");
-                  // We don't need to manually unsubscribe here because the parent useEffect cleanup will handle it 
-                  // when the component unmounts or user state changes... wait.
-                  // The parent `onAuthChange` might fire again with null user, triggering cleanup.
-                  // But safe to just let auth state change handle the UI.
-                });
-                return;
-              }
-
-              // 2. Subscription Check
-              let expiresAt = null;
-              const subData = data.subscription;
-
-              if (subData?.expiresAt) {
-                if (typeof subData.expiresAt === 'string') {
-                  expiresAt = new Date(subData.expiresAt);
-                } else if (subData.expiresAt.seconds) {
-                  expiresAt = new Date(subData.expiresAt.seconds * 1000);
-                }
-              }
-
-              const isValid = expiresAt ? expiresAt > new Date() : false;
-
-              setSubscription({
-                isSubscribed: isValid,
-                plan: isValid ? data.subscription?.plan : null,
-                expiresAt: expiresAt
-              });
-            } else {
-              setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
-            }
-            setLoading(false); // Finished initial load
-          }, (error) => {
-            console.error("Error in user snapshot listener:", error);
-            setLoading(false);
-          });
-
-          // Cleanup the Snapshot Listener when the Auth User changes (e.g. logout)
-          // We need to store `profileUnsubscribe` somewhere to clean it up?
-          // The `onAuthChange` callback can't return a cleanup function easily for *internal* logic.
-          // Correct pattern: `useEffect` should have a state for the cleanup function.
-          // BUT - `onAuthChange` returns its OWN unsubscribe.
-          // Refactoring to use a separate useEffect for the Firestore listener is cleaner.
-          // Let's stick to a slightly mutable approach for now or refactor.
-          // Actually, putting `profileUnsubscribe` inside a ref or variable in useEffect scope is best.
-
-          return () => {
-            profileUnsubscribe();
-          };
-
-        } catch (error) {
-          console.error("Error setting up user listener:", error);
-          setLoading(false);
-        }
-      } else {
+    // Effect 1: Listen for Firebase Auth User state changes
+    const unsubscribe = onAuthChange((u) => {
+      setUser(u);
+      if (!u) {
         setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
         setLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    // Effect 2: Listen for Firestore Profile changes (Only when user is logged in)
+    let unsubscribeProfile = () => { };
+    let isProcessingLogout = false;
+
+    const setupProfileListener = async () => {
+      if (!user) return;
+
+      setLoading(true);
+      try {
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        const userDocRef = doc(db, "users", user.uid);
+
+        unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+          // If we are already logging out, ignore further updates
+          if (isProcessingLogout) return;
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+
+            // 1. Security Check
+            const remoteDeviceId = data.deviceId;
+            const localDeviceId = localStorage.getItem('deviceId');
+
+            if (remoteDeviceId && localDeviceId && remoteDeviceId !== localDeviceId) {
+              isProcessingLogout = true; // Lock
+              console.warn("Session invalidated.");
+
+              // Stop listening immediately
+              unsubscribeProfile();
+
+              alert("Logged in on another device. Logging out...");
+
+              logOut().then(() => {
+                setUser(null);
+                // The effect cleanup will run naturally as user becomes null
+              });
+              return;
+            }
+
+            // 2. Subscription Check
+            let expiresAt = null;
+            const subData = data.subscription;
+            if (subData?.expiresAt) {
+              if (typeof subData.expiresAt === 'string') expiresAt = new Date(subData.expiresAt);
+              else if (subData.expiresAt.seconds) expiresAt = new Date(subData.expiresAt.seconds * 1000);
+            }
+            const isValid = expiresAt ? expiresAt > new Date() : false;
+            setSubscription({
+              isSubscribed: isValid,
+              plan: isValid ? data.subscription?.plan : null,
+              expiresAt: expiresAt
+            });
+
+          } else {
+            setSubscription({ isSubscribed: false, plan: null, expiresAt: null });
+          }
+          setLoading(false);
+        }, (err) => {
+          console.error("Snapshot error:", err);
+          setLoading(false);
+        });
+
+      } catch (err) {
+        console.error("Setup error:", err);
+        setLoading(false);
+      }
+    };
+
+    setupProfileListener();
+
+    return () => {
+      unsubscribeProfile();
+    };
+  }, [user]);
 
   const signIn = async () => {
     const result = await signInWithGoogle();
