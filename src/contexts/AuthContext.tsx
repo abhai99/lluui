@@ -81,7 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
               logOut().then(() => {
                 setUser(null);
-                // The effect cleanup will run naturally as user becomes null
+                // Redirect to Home immediately to clear state/view
+                window.location.href = '/';
               });
               return;
             }
