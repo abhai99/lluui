@@ -8,6 +8,15 @@ export const Navbar = () => {
   const { user, signIn, signOutUser, subscription, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const handleLogin = () => {
+    // Mobile App Deep Link Trigger
+    if (/Android/i.test(navigator.userAgent)) {
+      window.location.href = "myapp://open-login";
+    } else {
+      signIn();
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4">
@@ -35,9 +44,9 @@ export const Navbar = () => {
                   </Link>
                 )}
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={user.photoURL || ''} 
-                    alt={user.displayName || 'User'} 
+                  <img
+                    src={user.photoURL || ''}
+                    alt={user.displayName || 'User'}
                     className="w-8 h-8 rounded-full border-2 border-primary/30"
                   />
                   <span className="text-sm font-medium text-foreground">{user.displayName}</span>
@@ -48,7 +57,7 @@ export const Navbar = () => {
                 </Button>
               </>
             ) : (
-              <Button variant="default" onClick={signIn}>
+              <Button variant="default" onClick={handleLogin}>
                 Sign in with Google
               </Button>
             )}
@@ -69,9 +78,9 @@ export const Navbar = () => {
             {user ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 px-2">
-                  <img 
-                    src={user.photoURL || ''} 
-                    alt={user.displayName || 'User'} 
+                  <img
+                    src={user.photoURL || ''}
+                    alt={user.displayName || 'User'}
                     className="w-10 h-10 rounded-full border-2 border-primary/30"
                   />
                   <div>
@@ -80,8 +89,8 @@ export const Navbar = () => {
                   </div>
                 </div>
                 {subscription.isSubscribed && (
-                  <Link 
-                    to="/premium" 
+                  <Link
+                    to="/premium"
                     className="block px-2 py-2 text-muted-foreground hover:text-foreground"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -89,8 +98,8 @@ export const Navbar = () => {
                   </Link>
                 )}
                 {isAdmin && (
-                  <Link 
-                    to="/admin" 
+                  <Link
+                    to="/admin"
                     className="block px-2 py-2 text-muted-foreground hover:text-foreground"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -103,7 +112,7 @@ export const Navbar = () => {
                 </Button>
               </div>
             ) : (
-              <Button variant="default" className="w-full" onClick={signIn}>
+              <Button variant="default" className="w-full" onClick={handleLogin}>
                 Sign in with Google
               </Button>
             )}

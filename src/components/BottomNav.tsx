@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 
 export const BottomNav = () => {
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, signIn } = useAuth();
     const location = useLocation();
 
     // Hide BottomNav on specific pages (e.g. Mobile Login Flow)
@@ -35,9 +35,14 @@ export const BottomNav = () => {
 
                 <div
                     onClick={() => {
-                        // If we had a profile page
-                        // For now just sign in if not signed in, or show maybe a small menu
-                        if (!user) document.getElementById('google-btn')?.click();
+                        if (!user) {
+                            // Mobile Deep Link Check
+                            if (/Android/i.test(navigator.userAgent)) {
+                                window.location.href = "myapp://open-login";
+                            } else {
+                                signIn();
+                            }
+                        }
                     }}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-16 ${user ? 'text-primary' : 'text-muted-foreground'}`}
                 >
