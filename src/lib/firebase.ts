@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyABK3hb1ucRu1jjrTu98VMiZvmbdoNYr8s",
@@ -28,8 +28,20 @@ const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return { user: result.user, error: null };
+    await signInWithRedirect(auth, googleProvider);
+    // The page will redirect, so we don't return anything meaningful immediately.
+    // The result is handled by getRedirectResult on page load.
+    return { user: null, error: null };
+  } catch (error: unknown) {
+    console.error("Redirect Error:", error);
+    return { user: null, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
+export const getGoogleRedirectResult = async () => {
+  try {
+    const result = await getRedirectResult(auth);
+    return { user: result?.user || null, error: null };
   } catch (error: unknown) {
     return { user: null, error: error instanceof Error ? error.message : String(error) };
   }

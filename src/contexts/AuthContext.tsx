@@ -123,35 +123,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user]);
 
-  const signIn = async () => {
-    const result = await signInWithGoogle();
-
-    // Save user to Firestore immediately on login
-    if (result.user) {
+  useEffect(() => {
+    // Effect 3: Handle Redirect Result (For Component Mount after Redirect Login)
+    const handleRedirect = async () => {
       try {
-        const { doc, setDoc } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
-        const userRef = doc(db, "users", result.user.uid);
+        const { getGoogleRedirectResult } = await import('@/lib/firebase');
+        const { user: redirectUser, error } = await getGoogleRedirectResult();
 
-        // Security: Generate new Device ID
-        const newDeviceId = crypto.randomUUID();
-        localStorage.setItem('deviceId', newDeviceId);
+        if (redirectUser) {
+          // User just came back from Google Login.
+          // Needs to be saved to Firestore similar to the old signIn method.
+          const { doc, setDoc } = await import('firebase/firestore');
+          const { db } = await import('@/lib/firebase');
+          const userRef = doc(db, "users", redirectUser.uid);
 
-        // Save/Update user profile
-        await setDoc(userRef, {
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          lastLogin: new Date(),
-          deviceId: newDeviceId // Force update device ID on server
-        }, { merge: true });
+          // Security: Generate new Device ID
+          const newDeviceId = crypto.randomUUID();
+          localStorage.setItem('deviceId', newDeviceId);
 
-      } catch (e) {
-        console.error("Error saving user to DB:", e);
+          // Save/Update user profile
+          await setDoc(userRef, {
+            uid: redirectUser.uid,
+            email: redirectUser.email,
+            displayName: redirectUser.displayName,
+            photoURL: redirectUser.photoURL,
+            lastLogin: new Date(),
+            deviceId: newDeviceId
+          }, { merge: true });
+        }
+
+        if (error) {
+          console.error("Redirect Login Error:", error);
+        }
+
+      } catch (err) {
+        console.error("Handle Redirect Error:", err);
       }
-    }
+    };
 
+    handleRedirect();
+  }, []);
+
+  const signIn = async () => {
+    // This now triggers a redirect. processing effectively pauses here for the app.
+    const result = await signInWithGoogle();
     return { error: result.error };
   };
 
