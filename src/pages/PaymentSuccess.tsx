@@ -27,8 +27,8 @@ const PaymentSuccess = () => {
             }
 
             try {
-                // Call our secure verification API
-                const response = await fetch('/api/verify-order', {
+                // Call our secure verification API (Point to Vercel backend)
+                const response = await fetch('https://lluui.vercel.app/api/verify-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ orderId })
