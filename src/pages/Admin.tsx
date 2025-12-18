@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,12 +81,90 @@ const Admin = () => {
     setPages(pages.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p));
   };
 
-  // Mock data for users
-  const mockUsers = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', subscribed: true, plan: 'monthly' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', subscribed: false, plan: null },
-    { id: '3', name: 'Bob Johnson', email: 'bob@example.com', subscribed: true, plan: 'weekly' },
-  ];
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Fetch real users from Firestore
+  useEffect(() => {
+    if (activeTab === 'users' && isAdmin) {
+      const fetchUsers = async () => {
+        try {
+          const { collection, getDocs } = await import('firebase/firestore');
+          const { db } = await import('@/lib/firebase');
+          const usersSnap = await getDocs(collection(db, "users"));
+          const usersList = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setUsers(usersList);
+        } catch (error) {
+          console.error("Error fetching users:", error);
+          toast.error("Failed to load users.");
+        }
+      };
+      fetchUsers();
+    }
+  }, [activeTab, isAdmin]);
+
+  const handleManualActivation = async (userId: string, email: string, plan: 'weekly' | 'monthly') => {
+    if (!confirm(`Activate ${plan} plan for ${email}?`)) return;
+
+    try {
+      const { doc, setDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+
+      const startDate = new Date();
+      const expiresAt = new Date();
+      if (plan === 'weekly') expiresAt.setDate(expiresAt.getDate() + 7);
+      else expiresAt.setDate(expiresAt.getDate() + 30);
+
+      await setDoc(doc(db, 'users', userId), {
+        subscription: {
+          isSubscribed: true,
+          plan: plan,
+          startDate: startDate.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          amount: plan === 'weekly' ? 99 : 299,
+          manualActivation: true,
+          activatedBy: user?.email
+        }
+      }, { merge: true });
+
+      toast.success(`Activated ${plan} for ${email}`);
+      // Refresh list locally
+      setUsers(users.map(u => u.id === userId ? {
+        ...u,
+        subscription: { isSubscribed: true, plan, expiresAt: expiresAt.toISOString() }
+      } : u));
+
+    } catch (error) {
+      console.error("Activation failed:", error);
+      toast.error("Failed to activate subscription.");
+    }
+  };
+
+  const handleManualDeactivation = async (userId: string) => {
+    if (!confirm("Are you sure you want to revoke this subscription?")) return;
+    try {
+      const { doc, setDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+
+      await setDoc(doc(db, 'users', userId), {
+        subscription: {
+          isSubscribed: false,
+          plan: null,
+          expiresAt: null
+        }
+      }, { merge: true });
+
+      toast.success(`Subscription revoked.`);
+      // Refresh list locally
+      setUsers(users.map(u => u.id === userId ? {
+        ...u,
+        subscription: { isSubscribed: false, plan: null }
+      } : u));
+
+    } catch (error) {
+      console.error("Deactivation failed:", error);
+      toast.error("Failed to revoke subscription.");
+    }
+  };
 
   return (
     <div className="min-h-screen gradient-hero">
@@ -203,26 +281,52 @@ const Admin = () => {
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Email</th>
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Status</th>
                         <th className="text-left py-3 px-4 text-muted-foreground font-medium">Plan</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {mockUsers.map((user) => (
+                      {users.map((user) => (
                         <tr key={user.id} className="border-b border-border/50">
-                          <td className="py-4 px-4 text-foreground">{user.name}</td>
+                          <td className="py-4 px-4 text-foreground">{user.displayName || 'No Name'}</td>
                           <td className="py-4 px-4 text-muted-foreground">{user.email}</td>
                           <td className="py-4 px-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.subscribed
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.subscription?.isSubscribed
                               ? 'bg-green-100 text-green-700'
                               : 'bg-muted text-muted-foreground'
                               }`}>
-                              {user.subscribed ? 'Active' : 'Free'}
+                              {user.subscription?.isSubscribed ? 'Active' : 'Free'}
                             </span>
                           </td>
-                          <td className="py-4 px-4 text-foreground capitalize">{user.plan || '-'}</td>
+                          <td className="py-4 px-4 text-foreground capitalize">{user.subscription?.plan || '-'}</td>
+                          <td className="py-4 px-4 flex gap-2">
+                            {!user.subscription?.isSubscribed && (
+                              <>
+                                <Button size="sm" variant="outline" className="text-xs h-8"
+                                  onClick={() => handleManualActivation(user.id, user.email, 'weekly')}>
+                                  + Weekly
+                                </Button>
+                                <Button size="sm" variant="outline" className="text-xs h-8"
+                                  onClick={() => handleManualActivation(user.id, user.email, 'monthly')}>
+                                  + Monthly
+                                </Button>
+                              </>
+                            )}
+                            {user.subscription?.isSubscribed && (
+                              <Button size="sm" variant="destructive" className="text-xs h-8"
+                                onClick={() => handleManualDeactivation(user.id)}>
+                                Revoke
+                              </Button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                  {users.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No users found yet.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
