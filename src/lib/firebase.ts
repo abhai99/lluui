@@ -28,37 +28,29 @@ const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    // Check if mobile browser (popup works better on mobile)
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // ALWAYS use popup (Works on both Mobile & PC, and guarantees deviceId is saved)
+    const { signInWithPopup } = await import('firebase/auth');
+    const result = await signInWithPopup(auth, googleProvider);
 
-    if (isMobile) {
-      // Use popup on mobile (more reliable)
-      const { signInWithPopup } = await import('firebase/auth');
-      const result = await signInWithPopup(auth, googleProvider);
+    // Save user to Firestore immediately
+    const { doc, setDoc } = await import('firebase/firestore');
+    const { db } = await import('@/lib/firebase');
+    const userRef = doc(db, "users", result.user.uid);
 
-      // Save user to Firestore immediately
-      const { doc, setDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
-      const userRef = doc(db, "users", result.user.uid);
+    // Generate and save Device ID for Single Session protection
+    const newDeviceId = crypto.randomUUID();
+    localStorage.setItem('deviceId', newDeviceId);
 
-      const newDeviceId = crypto.randomUUID();
-      localStorage.setItem('deviceId', newDeviceId);
+    await setDoc(userRef, {
+      uid: result.user.uid,
+      email: result.user.email,
+      displayName: result.user.displayName,
+      photoURL: result.user.photoURL,
+      lastLogin: new Date(),
+      deviceId: newDeviceId
+    }, { merge: true });
 
-      await setDoc(userRef, {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        lastLogin: new Date(),
-        deviceId: newDeviceId
-      }, { merge: true });
-
-      return { user: result.user, error: null };
-    } else {
-      // Use redirect on desktop
-      await signInWithRedirect(auth, googleProvider);
-      return { user: null, error: null };
-    }
+    return { user: result.user, error: null };
   } catch (error: unknown) {
     console.error("Sign-in Error:", error);
     return { user: null, error: error instanceof Error ? error.message : String(error) };
