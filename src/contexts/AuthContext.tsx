@@ -123,49 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user]);
 
-  useEffect(() => {
-    // Effect 3: Handle Redirect Result (For Component Mount after Redirect Login)
-    const handleRedirect = async () => {
-      try {
-        const { getGoogleRedirectResult } = await import('@/lib/firebase');
-        const { user: redirectUser, error } = await getGoogleRedirectResult();
 
-        if (redirectUser) {
-          // User just came back from Google Login.
-          // Needs to be saved to Firestore similar to the old signIn method.
-          const { doc, setDoc } = await import('firebase/firestore');
-          const { db } = await import('@/lib/firebase');
-          const userRef = doc(db, "users", redirectUser.uid);
-
-          // Security: Generate new Device ID
-          const newDeviceId = crypto.randomUUID();
-          localStorage.setItem('deviceId', newDeviceId);
-
-          // Save/Update user profile
-          await setDoc(userRef, {
-            uid: redirectUser.uid,
-            email: redirectUser.email,
-            displayName: redirectUser.displayName,
-            photoURL: redirectUser.photoURL,
-            lastLogin: new Date(),
-            deviceId: newDeviceId
-          }, { merge: true });
-
-          // Redirect to home page after successful login
-          window.location.href = '/';
-        }
-
-        if (error) {
-          console.error("Redirect Login Error:", error);
-        }
-
-      } catch (err) {
-        console.error("Handle Redirect Error:", err);
-      }
-    };
-
-    handleRedirect();
-  }, []);
 
   const signIn = async () => {
     // This now triggers a redirect. processing effectively pauses here for the app.
