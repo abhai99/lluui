@@ -25,8 +25,8 @@ interface CheckoutResult {
   };
 }
 
-// API base URL - uses relative path for Vercel
-const API_BASE = '/api';
+// API base URL - Always point to Vercel backend where serverless functions live
+const API_BASE = 'https://lluui.vercel.app/api';
 
 // Initialize Cashfree SDK
 let cashfreeInstance: CashfreeInstance | null = null;
