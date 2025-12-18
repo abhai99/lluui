@@ -151,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             deviceId: newDeviceId
           }, { merge: true });
 
-          // Redirect to Success Page for Mobile/Custom Tab Flow
-          window.location.href = '/app-success';
+          // Redirect to home page after successful login
+          window.location.href = '/';
         }
 
         if (error) {
