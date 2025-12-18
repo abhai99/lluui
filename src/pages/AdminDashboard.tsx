@@ -56,13 +56,16 @@ export const AdminDashboard = () => {
 
                 // 2. Fetch Users (for Stats & Table)
                 const usersSnapshot = await getDocs(collection(db, "users"));
-                const usersData = usersSnapshot.docs.map(doc => doc.data());
+                // Map properly to include ID if it's missing in data but present in doc
+                const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                 // Calculate Stats
                 const subscribedUsers = usersData.filter((u: any) => u.subscription?.isSubscribed);
                 const revenue = subscribedUsers.reduce((acc: number, curr: any) => acc + (curr.subscription?.amount || 0), 0);
 
-                setUsers(subscribedUsers);
+                // Show ALL users in the table, not just subscribed ones
+                setUsers(usersData);
+
                 setStats({
                     totalUsers: subscribedUsers.length,
                     totalRevenue: revenue,
@@ -112,6 +115,72 @@ export const AdminDashboard = () => {
             toast.error("Failed to save settings");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleManualActivation = async (userId: string, email: string, plan: 'weekly' | 'monthly') => {
+        if (!userId) { toast.error("User ID missing"); return; }
+        if (!confirm(`Activate ${plan} plan for ${email}?`)) return;
+
+        try {
+            const startDate = new Date();
+            const expiresAt = new Date();
+            if (plan === 'weekly') expiresAt.setDate(expiresAt.getDate() + 7);
+            else expiresAt.setDate(expiresAt.getDate() + 30);
+
+            await setDoc(doc(db, 'users', userId), {
+                subscription: {
+                    isSubscribed: true,
+                    plan: plan,
+                    startDate: startDate.toISOString(),
+                    expiresAt: expiresAt.toISOString(),
+                    amount: plan === 'weekly' ? 99 : 299,
+                    manualActivation: true,
+                    activatedBy: 'Admin'
+                }
+            }, { merge: true });
+
+            toast.success(`Activated ${plan} for ${email}`);
+
+            // Refresh logic (Optimistic update)
+            setUsers(users.map(u => (u.id === userId || u.uid === userId) ? {
+                ...u,
+                subscription: {
+                    isSubscribed: true,
+                    plan,
+                    expiresAt: expiresAt.toISOString(),
+                    amount: plan === 'weekly' ? 99 : 299
+                }
+            } : u));
+
+        } catch (error) {
+            console.error("Activation failed:", error);
+            toast.error("Failed to activate subscription.");
+        }
+    };
+
+    const handleManualDeactivation = async (userId: string) => {
+        if (!userId) return;
+        if (!confirm("Are you sure you want to revoke this subscription?")) return;
+        try {
+            await setDoc(doc(db, 'users', userId), {
+                subscription: {
+                    isSubscribed: false,
+                    plan: null,
+                    expiresAt: null
+                }
+            }, { merge: true });
+
+            toast.success(`Subscription revoked.`);
+            // Refresh list locally
+            setUsers(users.map(u => (u.id === userId || u.uid === userId) ? {
+                ...u,
+                subscription: { isSubscribed: false, plan: null }
+            } : u));
+
+        } catch (error) {
+            console.error("Deactivation failed:", error);
+            toast.error("Failed to revoke subscription.");
         }
     };
 
@@ -240,28 +309,51 @@ export const AdminDashboard = () => {
                                             <th className="px-4 py-3">Plan</th>
                                             <th className="px-4 py-3">Expires At</th>
                                             <th className="px-4 py-3">Days Left</th>
-                                            <th className="px-4 py-3">Amount</th>
-                                            <th className="px-4 py-3">Order ID</th>
+                                            {/* <th className="px-4 py-3">Amount</th> */}
+                                            {/* <th className="px-4 py-3">Order ID</th> */}
+                                            <th className="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {users.map((user, idx) => {
-                                            const daysLeft = Math.ceil((new Date(user.subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                            const isSub = user.subscription?.isSubscribed;
+                                            const daysLeft = isSub ? Math.ceil((new Date(user.subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
                                             return (
                                                 <tr key={idx} className="border-b border-border hover:bg-muted/20">
-                                                    <td className="px-4 py-3 font-medium">{user.displayName}</td>
+                                                    <td className="px-4 py-3 font-medium">{user.displayName || 'No Name'}</td>
                                                     <td className="px-4 py-3">{user.email}</td>
-                                                    <td className="px-4 py-3 uppercase">{user.subscription.plan}</td>
-                                                    <td className="px-4 py-3">{new Date(user.subscription.expiresAt).toLocaleDateString()}</td>
-                                                    <td className="px-4 py-3 font-bold text-primary">{daysLeft > 0 ? daysLeft : 'Expired'}</td>
-                                                    <td className="px-4 py-3">₹{user.subscription.amount}</td>
-                                                    <td className="px-4 py-3 font-mono text-xs">{user.subscription.orderId?.slice(0, 10)}...</td>
+                                                    <td className="px-4 py-3 uppercase">
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${isSub ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                            {isSub ? user.subscription.plan : 'FREE'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3">{isSub ? new Date(user.subscription.expiresAt).toLocaleDateString() : '-'}</td>
+                                                    <td className="px-4 py-3 font-bold text-primary">{isSub ? (daysLeft > 0 ? daysLeft : 'Expired') : '-'}</td>
+                                                    {/* <td className="px-4 py-3">₹{user.subscription?.amount || 0}</td> */}
+                                                    {/* <td className="px-4 py-3 font-mono text-xs">{user.subscription?.orderId?.slice(0, 10)}...</td> */}
+                                                    <td className="px-4 py-3 flex gap-2">
+                                                        {!isSub && (
+                                                            <>
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleManualActivation(user.uid || user.id, user.email, 'weekly')}>
+                                                                    + Weekly
+                                                                </Button>
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleManualActivation(user.uid || user.id, user.email, 'monthly')}>
+                                                                    + Monthly
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                        {isSub && (
+                                                            <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleManualDeactivation(user.uid || user.id)}>
+                                                                Revoke
+                                                            </Button>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             );
                                         })}
                                         {users.length === 0 && (
                                             <tr>
-                                                <td colSpan={7} className="text-center py-4 text-muted-foreground">No subscribers found yet.</td>
+                                                <td colSpan={7} className="text-center py-4 text-muted-foreground">No users found yet.</td>
                                             </tr>
                                         )}
                                     </tbody>
