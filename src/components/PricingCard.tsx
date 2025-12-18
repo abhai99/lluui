@@ -27,11 +27,6 @@ export const PricingCard = ({ plan, price, features, popular }: PricingCardProps
     if (isCurrentPlan) return;
 
     if (!user) {
-      if (/Android/i.test(navigator.userAgent)) {
-        window.location.href = "myapp://native-login";
-        return; // Stop here, app will reload after login
-      }
-
       const result = await signIn();
       if (result.error) {
         toast.error('Failed to sign in. Please try again.');

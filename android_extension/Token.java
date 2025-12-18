@@ -9,6 +9,8 @@ import com.google.appinventor.components.common.ComponentCategory;
 import com.google.appinventor.components.runtime.*;
 import java.lang.reflect.Method;
 
+import com.google.appinventor.components.annotations.androidmanifest.*;
+
 @DesignerComponent(
         version = 1,
         description = "Native Google Sign-In Extension (Reflection based) for retrieving ID Token",
@@ -17,10 +19,20 @@ import java.lang.reflect.Method;
         iconName = "https://end11.com/weekly/icon.png")
 @SimpleObject(external = true)
 @UsesPermissions(permissionNames = "android.permission.INTERNET")
+@UsesActivities(activities = {
+    @ActivityElement(name = "com.google.android.gms.auth.api.signin.internal.SignInHubActivity",
+                     excludeFromRecents = "true",
+                     exported = "false",
+                     theme = "@android:style/Theme.Translucent.NoTitleBar"),
+    @ActivityElement(name = "com.google.android.gms.common.api.GoogleApiActivity",
+                     exported = "false",
+                     theme = "@android:style/Theme.Translucent.NoTitleBar")
+})
 public class Token extends AndroidNonvisibleComponent implements ActivityResultListener {
 
     private final Context context;
     private final Activity activity;
+    private final ComponentContainer container;
     private static final int RC_SIGN_IN = 9001;
     private Object mGoogleSignInClient;
 
@@ -33,14 +45,32 @@ public class Token extends AndroidNonvisibleComponent implements ActivityResultL
 
     public Token(ComponentContainer container){
         super(container.$form());
+        this.container = container;
         this.activity = container.$context();
         this.context = container.$context();
         container.$form().registerForActivityResult(this);
+        Log.d("TokenExtension", "Extension Initialized");
+    }
+
+    @SimpleFunction(description = "Test if extension is working. Should trigger Debug event.")
+    public void TestDebug() {
+        Debug("Test Debug Message: Extension is Alive!");
+    }
+
+    @SimpleFunction(description = "Test if LoginSuccess event fires. Sends fake data.")
+    public void TestLoginSuccess() {
+        Debug("TestLoginSuccess called - firing event...");
+        LoginSuccess("FAKE_TOKEN_12345", "test@example.com", "Test User", "");
     }
 
     @SimpleFunction(description = "Initiates Google Sign-In to get the ID Token. Pass the Web Client ID.")
     public void SignIn(String webClientId) {
+        Debug("SignIn called with ID: " + webClientId);
         try {
+            // Re-register to be safe
+            container.$form().registerForActivityResult(this);
+            Debug("Listener Registered.");
+
             // Load Classes via Reflection
             GoogleSignInOptionsClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignInOptions");
             GoogleSignInClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignIn");
@@ -82,6 +112,78 @@ public class Token extends AndroidNonvisibleComponent implements ActivityResultL
         } catch (Exception e) {
             Log.e("TokenExtension", "Reflection Init Error", e);
             LoginError("Init Error: " + e.toString());
+        }
+    }
+
+    @SimpleFunction(description = "WORKAROUND for Niotron: Creates Google Sign-In Intent. Use with ActivityStarter.")
+    public Object CreateSignInIntent(String webClientId) {
+        Debug("CreateSignInIntent called");
+        try {
+            // Load Classes via Reflection
+            GoogleSignInOptionsClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignInOptions");
+            GoogleSignInClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignIn");
+            GoogleSignInAccountClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignInAccount");
+            ApiExceptionClass = Class.forName("com.google.android.gms.common.api.ApiException");
+            TaskClass = Class.forName("com.google.android.gms.tasks.Task");
+
+            // Builder
+            Object defaultSignIn = GoogleSignInOptionsClass.getField("DEFAULT_SIGN_IN").get(null);
+            Class<?> builderClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignInOptions$Builder");
+            Object builder = builderClass.getConstructor(GoogleSignInOptionsClass).newInstance(defaultSignIn);
+
+            Method requestIdTokenMethod = builderClass.getMethod("requestIdToken", String.class);
+            builder = requestIdTokenMethod.invoke(builder, webClientId);
+
+            Method requestEmailMethod = builderClass.getMethod("requestEmail");
+            builder = requestEmailMethod.invoke(builder);
+
+            Method buildMethod = builderClass.getMethod("build");
+            Object gso = buildMethod.invoke(builder);
+
+            Method getClientMethod = GoogleSignInClass.getMethod("getClient", Activity.class, GoogleSignInOptionsClass);
+            mGoogleSignInClient = getClientMethod.invoke(null, activity, gso);
+
+            Method getSignInIntentMethod = mGoogleSignInClient.getClass().getMethod("getSignInIntent");
+            Intent signInIntent = (Intent) getSignInIntentMethod.invoke(mGoogleSignInClient);
+
+            Debug("Intent created successfully");
+            return signInIntent;
+
+        } catch (Exception e) {
+            Debug("Error creating intent: " + e.toString());
+            LoginError("Intent Creation Error: " + e.toString());
+            return null;
+        }
+    }
+
+    @SimpleFunction(description = "WORKAROUND: Process the result from ActivityStarter. Call this in AfterActivity event.")
+    public void ProcessSignInResult(Object resultIntent) {
+        Debug("ProcessSignInResult called");
+        try {
+            if (resultIntent == null) {
+                Debug("Result intent is null");
+                LoginError("No result received");
+                return;
+            }
+
+            // Cast to Intent
+            Intent data = (Intent) resultIntent;
+
+            // GoogleSignIn.getSignedInAccountFromIntent(data)
+            Method getSignedInAccountMethod = GoogleSignInClass.getMethod("getSignedInAccountFromIntent", Intent.class);
+            Object task = getSignedInAccountMethod.invoke(null, data);
+
+            if (task == null) {
+                Debug("Task is null");
+                LoginError("Invalid result");
+                return;
+            }
+
+            handleSignInResult(task);
+
+        } catch (Exception e) {
+            Debug("Error processing result: " + e.toString());
+            LoginError("Result Processing Error: " + e.toString());
         }
     }
 

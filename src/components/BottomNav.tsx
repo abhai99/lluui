@@ -36,12 +36,7 @@ export const BottomNav = () => {
                 <div
                     onClick={() => {
                         if (!user) {
-                            // Mobile Deep Link Check
-                            if (/Android/i.test(navigator.userAgent)) {
-                                window.location.href = "myapp://native-login";
-                            } else {
-                                signIn();
-                            }
+                            signIn();
                         }
                     }}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-16 ${user ? 'text-primary' : 'text-muted-foreground'}`}

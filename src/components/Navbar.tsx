@@ -9,12 +9,7 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogin = () => {
-    // Mobile App Native Login Trigger
-    if (/Android/i.test(navigator.userAgent)) {
-      window.location.href = "myapp://native-login";
-    } else {
-      signIn();
-    }
+    signIn();
   };
 
   return (
